@@ -10,6 +10,8 @@ the evaluation environment removes these sources of variation:
 3. Fixed velocity commands. Each environment gets one command from
    EVAL_COMMANDS and keeps it for the full episode.
 4. Head and body pose commands are zero (neutral head).
+5. Optional: a payload on the trunk with a fixed mass and position for each
+   environment (see payload.py).
 
 The other domain randomization stays on (mass, joint friction, armature,
 IMU mounting error, encoder bias). They are part of the normal operating
@@ -29,10 +31,11 @@ EVAL_COMMANDS = {
     "forward_slow": (0.2, 0.0, 0.0),
     "forward_fast": (0.4, 0.0, 0.0),
     "backward": (-0.3, 0.0, 0.0),
-    "sideways": (0.0, 0.2, 0.0),
     "turn": (0.0, 0.0, 0.8),
     "forward_turn": (0.3, 0.0, 0.5),
 }
+# No pure sideways command: the baseline policy stands still for vy <= 0.2 m/s
+# (D1 result), so that command cannot show an effect of the payload.
 
 # Final values of the upstream curriculum (microduck_velocity_env_cfg.py).
 FINAL_COM_RANGE_M = 0.015
@@ -41,11 +44,26 @@ FINAL_HEAD_COM_RANGE_M = 0.01
 NEVER_S = 1.0e9  # A resampling time longer than any episode.
 
 
-def make_eval_env_cfg(base_cfg, envs_per_command: int, seed: int):
-    """Return a copy of the training env cfg with the fixed evaluation conditions."""
+def make_eval_env_cfg(base_cfg, envs_per_command: int, seed: int, payloads=None):
+    """Return a copy of the training env cfg with the fixed evaluation conditions.
+
+    payloads: None (upstream robot, no payload body), or a list of conditions
+    (mass_kg, dx_m). Each condition gets a full block of all commands.
+    Env layout: env i has condition i // (envs_per_command * n_commands) and
+    command (i // envs_per_command) % n_commands.
+    """
     cfg = deepcopy(base_cfg)
-    cfg.scene.num_envs = envs_per_command * len(EVAL_COMMANDS)
+    n_conditions = 1 if payloads is None else len(payloads)
+    block = envs_per_command * len(EVAL_COMMANDS)
+    cfg.scene.num_envs = block * n_conditions
     cfg.seed = seed
+
+    if payloads is not None:
+        from payload_duck.payload import add_payload_to_cfg
+
+        mass = [m for m, _ in payloads for _ in range(block)]
+        offset = [(dx, 0.0, 0.0) for _, dx in payloads for _ in range(block)]
+        add_payload_to_cfg(cfg, mass, offset)
 
     # 1. No curriculum; domain randomization at its final range.
     cfg.curriculum = {}
@@ -77,12 +95,12 @@ def make_eval_env_cfg(base_cfg, envs_per_command: int, seed: int):
     return cfg
 
 
-def command_table(envs_per_command: int, device) -> tuple[torch.Tensor, list[str]]:
-    """Commands for all envs, grouped in blocks: env i gets command i // envs_per_command."""
+def command_table(envs_per_command: int, device, n_conditions: int = 1) -> tuple[torch.Tensor, list[str]]:
+    """Commands for all envs, in blocks of envs_per_command, repeated for each condition."""
     names = list(EVAL_COMMANDS)
     values = torch.tensor([EVAL_COMMANDS[n] for n in names], dtype=torch.float32, device=device)
-    table = values.repeat_interleave(envs_per_command, dim=0)
-    labels = [n for n in names for _ in range(envs_per_command)]
+    table = values.repeat_interleave(envs_per_command, dim=0).repeat(n_conditions, 1)
+    labels = [n for n in names for _ in range(envs_per_command)] * n_conditions
     return table, labels
 
 

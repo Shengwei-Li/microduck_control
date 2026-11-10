@@ -38,6 +38,8 @@ def parse_args():
     p.add_argument("--width", type=int, default=640)
     p.add_argument("--height", type=int, default=480)
     p.add_argument("--device", default="cuda:0")
+    p.add_argument("--payload-mass-g", type=float, default=None, help="payload mass (g); default: no payload")
+    p.add_argument("--payload-dx-mm", type=float, default=0.0, help="payload forward offset (mm)")
     return p.parse_args()
 
 
@@ -59,6 +61,10 @@ def caption(frame, lines):
 def main():
     args = parse_args()
     args.envs_per_command = 1  # One robot per command; build() reads this.
+    args.payloads = evaluate.payload_conditions(
+        None if args.payload_mass_g is None else [args.payload_mass_g], [args.payload_dx_mm])
+    payload_line = [] if args.payloads is None else [
+        f"payload {args.payload_mass_g:.0f} g, {args.payload_dx_mm:+.0f} mm forward"]
     torch.manual_seed(args.seed)
     viewer = {
         "width": args.width,
@@ -104,7 +110,7 @@ def main():
         for name in labels:
             c = EVAL_COMMANDS[name]
             m = np.mean(vel[name], axis=0)
-            lines = [
+            lines = payload_line + [
                 f"{name}",
                 f"command   vx {c[0]:+.2f}  vy {c[1]:+.2f} m/s  wz {c[2]:+.2f} rad/s",
                 f"measured  vx {m[0]:+.2f}  vy {m[1]:+.2f} m/s  wz {m[2]:+.2f} rad/s",

@@ -45,7 +45,20 @@ def parse_args():
     p.add_argument("--settle-s", type=float, default=2.0, help="ignore the first seconds for tracking metrics")
     p.add_argument("--out", required=True, help="output folder")
     p.add_argument("--device", default="cuda:0")
-    return p.parse_args()
+    p.add_argument("--payload-mass-g", type=float, nargs="+", default=None,
+                   help="payload masses in grams; without it the robot has no payload body")
+    p.add_argument("--payload-dx-mm", type=float, nargs="+", default=[0.0],
+                   help="payload forward offsets in mm (+ is forward); all mass x offset pairs are tested")
+    args = p.parse_args()
+    args.payloads = payload_conditions(args.payload_mass_g, args.payload_dx_mm)
+    return args
+
+
+def payload_conditions(mass_g, dx_mm):
+    """All (mass_kg, dx_m) pairs, or None if no mass is given."""
+    if mass_g is None:
+        return None
+    return [(m / 1000.0, dx / 1000.0) for m in mass_g for dx in dx_mm]
 
 
 def build(args, viewer=None):
@@ -59,7 +72,8 @@ def build(args, viewer=None):
     from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
     from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
 
-    env_cfg = make_eval_env_cfg(load_env_cfg(TASK_ID), args.envs_per_command, args.seed)
+    env_cfg = make_eval_env_cfg(load_env_cfg(TASK_ID), args.envs_per_command, args.seed,
+                                payloads=getattr(args, "payloads", None))
     render_mode = None
     if viewer is not None:
         for key, value in viewer.items():
@@ -112,12 +126,16 @@ def main():
     torch.manual_seed(args.seed)
     t0 = time.time()
     env, venv, policy = build(args)
-    table, labels = command_table(args.envs_per_command, args.device)
+    # One condition = one payload (mass, offset). Without payload there is one condition.
+    conditions = args.payloads if args.payloads is not None else [(0.0, 0.0)]
+    table, labels = command_table(args.envs_per_command, args.device, len(conditions))
     vel, done, fell, nan = rollout(env, venv, policy, table)
     dt = env.step_dt
 
     m = metrics.per_env(vel, table.cpu().numpy(), done, fell, dt, args.settle_s)
     labels_arr = np.array(labels)
+    block = args.envs_per_command * len(EVAL_COMMANDS)
+    cond_of_env = np.arange(len(labels)) // block
     summary = {
         "checkpoint": str(Path(args.checkpoint).resolve()),
         "upstream_commit": upstream_commit(),
@@ -125,13 +143,22 @@ def main():
         "envs_per_command": args.envs_per_command,
         "settle_s": args.settle_s,
         "episode_s": env.max_episode_length * dt,
-        "nan_episodes": int(metrics.first_true(nan).__ge__(0).sum()),
-        "commands": {},
-        "overall": metrics.summarize(m, np.arange(len(labels))),
+        "payload_body": args.payloads is not None,
+        "nan_episodes": int((metrics.first_true(nan) >= 0).sum()),
+        "conditions": [],
     }
-    for name, value in EVAL_COMMANDS.items():
-        s = metrics.summarize(m, np.flatnonzero(labels_arr == name))
-        summary["commands"][name] = {"command": value, **s}
+    for k, (mass_kg, dx_m) in enumerate(conditions):
+        in_cond = cond_of_env == k
+        cond = {
+            "payload_mass_g": round(mass_kg * 1000.0, 3),
+            "payload_dx_mm": round(dx_m * 1000.0, 3),
+            "overall": metrics.summarize(m, np.flatnonzero(in_cond)),
+            "commands": {},
+        }
+        for name, value in EVAL_COMMANDS.items():
+            s = metrics.summarize(m, np.flatnonzero(in_cond & (labels_arr == name)))
+            cond["commands"][name] = {"command": value, **s}
+        summary["conditions"].append(cond)
     summary["wall_time_s"] = round(time.time() - t0, 1)
 
     out = Path(args.out)
@@ -140,17 +167,23 @@ def main():
     with open(out / "per_env.csv", "w", newline="") as f:
         w = csv.writer(f)
         keys = list(m)
-        w.writerow(["env", "command"] + keys)
+        w.writerow(["env", "payload_mass_g", "payload_dx_mm", "command"] + keys)
         for i, label in enumerate(labels):
-            w.writerow([i, label] + [m[k][i] for k in keys])
+            c = summary["conditions"][cond_of_env[i]]
+            w.writerow([i, c["payload_mass_g"], c["payload_dx_mm"], label] + [m[k][i] for k in keys])
 
-    # Short table on the screen.
-    print(f"{'command':14s} {'cmd':>18s} {'fall':>6s} {'rmse_xy':>8s} {'rmse_yaw':>8s} {'vx':>6s} {'vy':>6s} {'wz':>6s}")
-    for name, s in list(summary["commands"].items()) + [("overall", summary["overall"])]:
-        c = s.get("command", ("", "", ""))
-        c = "" if c[0] == "" else f"({c[0]:.1f},{c[1]:.1f},{c[2]:.1f})"
-        print(f"{name:14s} {c:>18s} {s['fall_rate']:6.3f} {s['rmse_xy']:8.3f} {s['rmse_yaw']:8.3f} "
-              f"{s['mean_vx']:6.2f} {s['mean_vy']:6.2f} {s['mean_wz']:6.2f}")
+    # Short table on the screen: one line per condition and command.
+    print(f"{'mass_g':>6s} {'dx_mm':>6s} {'command':13s} {'fall':>6s} {'t_fall':>6s} {'rmse_xy':>8s} {'rmse_yaw':>8s} "
+          f"{'vx':>6s} {'vy':>6s} {'wz':>6s}")
+    for c in summary["conditions"]:
+        rows = [("ALL", c["overall"])]
+        if len(conditions) <= 3:  # Few conditions: also show each command.
+            rows = list(c["commands"].items()) + rows
+        for name, s in rows:
+            t_fall = s["median_fall_time_s"]
+            t_fall = "     -" if t_fall is None else f"{t_fall:6.2f}"
+            print(f"{c['payload_mass_g']:6.0f} {c['payload_dx_mm']:6.0f} {name:13s} {s['fall_rate']:6.3f} {t_fall} "
+                  f"{s['rmse_xy']:8.3f} {s['rmse_yaw']:8.3f} {s['mean_vx']:6.2f} {s['mean_vy']:6.2f} {s['mean_wz']:6.2f}")
     print(f"NaN episodes: {summary['nan_episodes']}. Wall time {summary['wall_time_s']} s. Wrote {out}")
 
 

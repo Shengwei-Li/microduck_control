@@ -42,6 +42,19 @@ def test_base_cfg_not_changed(base_cfg):
     assert len(base_cfg.curriculum) > 0
 
 
+def test_eval_cfg_with_payloads(base_cfg):
+    payloads = [(0.0, 0.0), (0.1, 0.02), (0.2, -0.02)]
+    cfg = eval_env.make_eval_env_cfg(base_cfg, envs_per_command=2, seed=1000, payloads=payloads)
+    block = 2 * len(eval_env.EVAL_COMMANDS)
+    assert cfg.scene.num_envs == 3 * block
+    params = cfg.events["set_payload"].params
+    assert params["mass_kg"][0] == 0.0 and params["mass_kg"][block] == 0.1 and params["mass_kg"][-1] == 0.2
+    assert params["offset_m"][block] == [0.02, 0.0, 0.0]
+    # The base cfg keeps the upstream robot and has no payload event.
+    assert "set_payload" not in base_cfg.events
+    assert cfg.scene.entities["robot"].spec_fn is not base_cfg.scene.entities["robot"].spec_fn
+
+
 def test_eval_commands_inside_training_range():
     for vx, vy, wz in eval_env.EVAL_COMMANDS.values():
         assert -0.4 <= vx <= 0.4 and -0.3 <= vy <= 0.3 and -1.0 <= wz <= 1.0
@@ -53,3 +66,8 @@ def test_command_table_blocks():
     assert table.shape == (3 * len(names), 3)
     assert labels[:3] == [names[0]] * 3 and labels[3] == names[1]
     assert tuple(table[3].tolist()) == pytest.approx(eval_env.EVAL_COMMANDS[names[1]])
+    # Two conditions: the same block of commands two times.
+    table2, labels2 = eval_env.command_table(envs_per_command=3, device="cpu", n_conditions=2)
+    assert table2.shape == (2 * 3 * len(names), 3)
+    assert labels2 == labels + labels
+    assert (table2[: len(labels)] == table).all() and (table2[len(labels):] == table).all()
