@@ -1,0 +1,158 @@
+"""Evaluate a walking policy with fixed commands and fixed conditions.
+
+Run it from the upstream folder, so that it uses the upstream environment:
+    cd ~/projectD/third_party/microduck_rl
+    uv run --locked python /mnt/d/EE_study/mphil_ready/projectD_rl_payload_biped/scripts/evaluate.py \
+        --checkpoint logs/rsl_rl/velocity/<run>/model_2999.pt --seed 1000 --out <folder>
+
+Each env runs one episode (20 s) with one fixed command (see eval_env.py).
+Writes <out>/summary.json (per command and overall) and <out>/per_env.csv.
+
+Seeds: training uses 0-99. Evaluation uses 1000-1999 for development
+(choosing settings) and 2000-2999 for the final tests.
+"""
+
+import argparse
+import csv
+import json
+import subprocess
+import sys
+import time
+from dataclasses import asdict
+from pathlib import Path
+
+import numpy as np
+import torch
+
+PROJECT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT / "src"))
+
+from payload_duck import metrics  # noqa: E402
+from payload_duck.eval_env import (  # noqa: E402
+    EVAL_COMMANDS,
+    TASK_ID,
+    apply_commands,
+    command_table,
+    make_eval_env_cfg,
+)
+
+
+def parse_args():
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument("--checkpoint", required=True, help="model_N.pt file")
+    p.add_argument("--seed", type=int, default=1000)
+    p.add_argument("--envs-per-command", type=int, default=128)
+    p.add_argument("--settle-s", type=float, default=2.0, help="ignore the first seconds for tracking metrics")
+    p.add_argument("--out", required=True, help="output folder")
+    p.add_argument("--device", default="cuda:0")
+    return p.parse_args()
+
+
+def build(args, viewer=None):
+    """Build the evaluation env and load the policy (same steps as upstream `play`).
+
+    viewer: dict of ViewerConfig fields (width, height, distance, ...). If given,
+    offscreen rendering is on and env.render() gives frames.
+    """
+    import mjlab_microduck.tasks  # noqa: F401  Registers the Microduck tasks.
+    from mjlab.envs import ManagerBasedRlEnv
+    from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
+    from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
+
+    env_cfg = make_eval_env_cfg(load_env_cfg(TASK_ID), args.envs_per_command, args.seed)
+    render_mode = None
+    if viewer is not None:
+        for key, value in viewer.items():
+            setattr(env_cfg.viewer, key, value)
+        render_mode = "rgb_array"
+    agent_cfg = load_rl_cfg(TASK_ID)
+    env = ManagerBasedRlEnv(cfg=env_cfg, device=args.device, render_mode=render_mode)
+    venv = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+    runner_cls = load_runner_cls(TASK_ID) or MjlabOnPolicyRunner
+    runner = runner_cls(venv, asdict(agent_cfg), device=args.device)
+    runner.load(args.checkpoint, load_cfg={"actor": True}, strict=True, map_location=args.device)
+    policy = runner.get_inference_policy(device=args.device)
+    return env, venv, policy
+
+
+def rollout(env, venv, policy, table):
+    """Run one episode length. Return numpy arrays vel (T,N,3), done, fell, nan (T,N)."""
+    robot = env.command_manager.get_term("twist").robot
+    terms = env.termination_manager
+    T = env.max_episode_length
+    vel, done, fell, nan = [], [], [], []
+
+    venv.reset()
+    apply_commands(env, table)
+    obs = venv.get_observations()  # Recompute: the reset drew random commands.
+    with torch.inference_mode():
+        for _ in range(T):
+            obs, _, dones, _ = venv.step(policy(obs))
+            # An env that ended was reset and got a random command. It no longer
+            # counts, but give it the fixed command again to keep the table simple.
+            apply_commands(env, table)
+            v = torch.cat([robot.data.root_link_lin_vel_b[:, :2], robot.data.root_link_ang_vel_b[:, 2:3]], dim=1)
+            vel.append(v.cpu())
+            done.append(dones.bool().cpu())
+            fell.append(terms.get_term("fell_over").cpu())
+            nan.append(terms.get_term("nan_state").cpu())
+    return (torch.stack(vel).numpy(), torch.stack(done).numpy(),
+            torch.stack(fell).numpy(), torch.stack(nan).numpy())
+
+
+def upstream_commit():
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        return None
+
+
+def main():
+    args = parse_args()
+    torch.manual_seed(args.seed)
+    t0 = time.time()
+    env, venv, policy = build(args)
+    table, labels = command_table(args.envs_per_command, args.device)
+    vel, done, fell, nan = rollout(env, venv, policy, table)
+    dt = env.step_dt
+
+    m = metrics.per_env(vel, table.cpu().numpy(), done, fell, dt, args.settle_s)
+    labels_arr = np.array(labels)
+    summary = {
+        "checkpoint": str(Path(args.checkpoint).resolve()),
+        "upstream_commit": upstream_commit(),
+        "seed": args.seed,
+        "envs_per_command": args.envs_per_command,
+        "settle_s": args.settle_s,
+        "episode_s": env.max_episode_length * dt,
+        "nan_episodes": int(metrics.first_true(nan).__ge__(0).sum()),
+        "commands": {},
+        "overall": metrics.summarize(m, np.arange(len(labels))),
+    }
+    for name, value in EVAL_COMMANDS.items():
+        s = metrics.summarize(m, np.flatnonzero(labels_arr == name))
+        summary["commands"][name] = {"command": value, **s}
+    summary["wall_time_s"] = round(time.time() - t0, 1)
+
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+    with open(out / "per_env.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        keys = list(m)
+        w.writerow(["env", "command"] + keys)
+        for i, label in enumerate(labels):
+            w.writerow([i, label] + [m[k][i] for k in keys])
+
+    # Short table on the screen.
+    print(f"{'command':14s} {'cmd':>18s} {'fall':>6s} {'rmse_xy':>8s} {'rmse_yaw':>8s} {'vx':>6s} {'vy':>6s} {'wz':>6s}")
+    for name, s in list(summary["commands"].items()) + [("overall", summary["overall"])]:
+        c = s.get("command", ("", "", ""))
+        c = "" if c[0] == "" else f"({c[0]:.1f},{c[1]:.1f},{c[2]:.1f})"
+        print(f"{name:14s} {c:>18s} {s['fall_rate']:6.3f} {s['rmse_xy']:8.3f} {s['rmse_yaw']:8.3f} "
+              f"{s['mean_vx']:6.2f} {s['mean_vy']:6.2f} {s['mean_wz']:6.2f}")
+    print(f"NaN episodes: {summary['nan_episodes']}. Wall time {summary['wall_time_s']} s. Wrote {out}")
+
+
+if __name__ == "__main__":
+    main()

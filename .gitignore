@@ -1,0 +1,22 @@
+# Agent notes and working docs (local only)
+CLAUDE.md
+AGENTS.md
+docs/
+
+# Upstream code (pinned commit, recorded in docs/PROGRESS.md)
+third_party/
+
+# Environments
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Training outputs
+logs/
+runs/
+wandb/
+checkpoints/
+*.pt
+*.onnx
+cache/
