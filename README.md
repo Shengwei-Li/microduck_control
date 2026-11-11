@@ -54,6 +54,34 @@ start of the episode, as if the robot picks it up. The masses are 0 to 200 g (th
 is 0.737 kg). The hypotheses and the frozen test settings are in
 [prereg/D2_hypotheses.md](prereg/D2_hypotheses.md). They are committed before the test runs.
 
+## Result: failure curve of P0 (test seeds)
+
+P0 never saw a payload in training. Test seeds 2000 and 2001, 768 episodes per mass
+(128 per command).
+
+![Failure curve of P0](results/d2/p0_failure_curve_test.png)
+
+| Mass (g) | 0 | 20 | 40 | 60 | 80 | 100 | 120 | 150 | 200 |
+|---|---|---|---|---|---|---|---|---|---|
+| Fall rate, all commands | 0 | 0 | 0 | 0.004 | 0.031 | 0.181 | 0.400 | 0.745 | 0.978 |
+| forward_fast vx (m/s), command 0.4 | 0.21 | 0.27 | 0.31 | 0.34 | 0.35 | 0.33 | 0.31 | 0.16 | 0.00 |
+| backward vx (m/s), command -0.3 | -0.19 | -0.14 | -0.09 | -0.03 | 0.00 | 0.03 | 0.04 | 0.05 | 0.04 |
+
+All four parts of hypothesis H1 hold:
+
+| Hypothesis | Result |
+|---|---|
+| H1a. Fall rate at most 0.02 up to 60 g | Holds: 0, 0, 0, 0.004 |
+| H1b. Fall rate crosses 0.5 between 120 g and 150 g | Holds: 0.400 and 0.745 |
+| H1c. At 60 g, backward speed is less than half of its value at 0 g, with few falls | Holds: 0.03 m/s against 0.19 m/s, fall rate 0.004 |
+| H1d. At 100 g and 120 g, forward_fast falls most and backward falls least | Holds: 0.38 and 0.01 at 100 g, 0.81 and 0.05 at 120 g |
+
+The failure has two stages. Up to 60 g the robot does not fall, but its velocity moves
+forward: it walks forward faster and it almost cannot walk backward. From 80 g it starts
+to fall. The payload also pushes the head down, because the neck servos are soft. This
+moves the payload farther forward. H1 used the same policy as the development result,
+so it is a check on new seeds, not a strong test.
+
 Videos of P0 with a payload (development seed):
 [60 g](results/video/p0_seed0_mouth_60g_dev1000.mp4),
 [100 g](results/video/p0_seed0_mouth_100g_dev1000.mp4).
@@ -69,6 +97,7 @@ upstream folder:
 bash scripts/train_p0.sh 4096 3000 0
 uv run --locked python <this repo>/scripts/evaluate.py --checkpoint <run>/model_2999.pt --seed 1000 --out <folder>
 uv run --locked python <this repo>/scripts/evaluate.py --checkpoint <run>/model_2999.pt --seed 1000 --payload-mass-g 0 60 100 --out <folder>
+uv run --locked python <this repo>/scripts/failure_curve.py --runs <folder> [<folder> ...] --out <path>
 uv run --locked python <this repo>/scripts/record_video.py --checkpoint <run>/model_2999.pt --payload-mass-g 100 --out <file>.mp4
 uv run --locked --with pytest pytest -q <this repo>/tests
 ```
