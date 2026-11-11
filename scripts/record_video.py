@@ -33,14 +33,27 @@ def parse_args():
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--out", required=True, help="output .mp4 file")
     p.add_argument("--seed", type=int, default=1000)
-    p.add_argument("--start-s", type=float, default=2.0, help="clip start (skip the first steps)")
-    p.add_argument("--clip-s", type=float, default=5.0, help="clip length per command")
+    p.add_argument("--start-s", type=float, default=3.0, help="clip start (skip the first steps)")
+    p.add_argument("--clip-s", type=float, default=6.0, help="clip length per command")
     p.add_argument("--width", type=int, default=640)
     p.add_argument("--height", type=int, default=480)
     p.add_argument("--device", default="cuda:0")
     p.add_argument("--payload-mass-g", type=float, default=None, help="payload mass (g); default: no payload")
     p.add_argument("--payload-dx-mm", type=float, default=0.0, help="payload forward offset (mm)")
+    p.add_argument("--payload-mount", choices=["mouth", "trunk"], default="mouth")
+    p.add_argument("--payload-onset-s", type=float, default=5.0, help="time when the payload appears; 0 = from the start")
     return p.parse_args()
+
+
+def set_payload_visible(env, visible: bool) -> None:
+    """Show or hide the payload shape in the rendered frames (all envs)."""
+    import mujoco
+
+    model = env.sim.mj_model
+    for i in range(model.ngeom):
+        name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i) or ""  # Some geoms have no name.
+        if name.endswith("payload_visual"):
+            model.geom_rgba[i, 3] = 1.0 if visible else 0.0
 
 
 def caption(frame, lines):
@@ -63,8 +76,8 @@ def main():
     args.envs_per_command = 1  # One robot per command; build() reads this.
     args.payloads = evaluate.payload_conditions(
         None if args.payload_mass_g is None else [args.payload_mass_g], [args.payload_dx_mm])
-    payload_line = [] if args.payloads is None else [
-        f"payload {args.payload_mass_g:.0f} g, {args.payload_dx_mm:+.0f} mm forward"]
+    where = "in the beak" if args.payload_mount == "mouth" else f"on the trunk, {args.payload_dx_mm:+.0f} mm forward"
+    payload_text = None if args.payloads is None else f"payload {args.payload_mass_g:.0f} g {where}"
     torch.manual_seed(args.seed)
     viewer = {
         "width": args.width,
@@ -85,12 +98,19 @@ def main():
     t1 = t0 + round(args.clip_s / dt)
     frames = {name: [] for name in labels}
     vel = {name: [] for name in labels}
+    load_step, load_fn = evaluate.payload_loader(env, args)
+    if load_step is not None:
+        set_payload_visible(env, False)
+    loaded_from = t0 if load_step is None else max(load_step, t0)  # First step with the final payload.
 
     venv.reset()
     apply_commands(env, table)
     obs = venv.get_observations()
     with torch.inference_mode():
         for t in range(t1):
+            if t == load_step:
+                load_fn()
+                set_payload_visible(env, True)
             obs, _, dones, _ = venv.step(policy(obs))
             apply_commands(env, table)
             if dones.any():
@@ -109,14 +129,17 @@ def main():
     with imageio.get_writer(out, fps=fps, codec="libx264", quality=8, macro_block_size=16) as w:
         for name in labels:
             c = EVAL_COMMANDS[name]
-            m = np.mean(vel[name], axis=0)
-            lines = payload_line + [
+            m = np.mean(vel[name][loaded_from - t0:], axis=0)  # Mean with the final payload.
+            lines = [
                 f"{name}",
                 f"command   vx {c[0]:+.2f}  vy {c[1]:+.2f} m/s  wz {c[2]:+.2f} rad/s",
                 f"measured  vx {m[0]:+.2f}  vy {m[1]:+.2f} m/s  wz {m[2]:+.2f} rad/s",
             ]
-            for frame in frames[name]:
-                w.append_data(caption(frame, lines))
+            for k, frame in enumerate(frames[name]):
+                first = []
+                if payload_text is not None:
+                    first = [payload_text if t0 + k >= loaded_from else "no payload"]
+                w.append_data(caption(frame, first + lines))
     print(f"Wrote {out} ({len(labels)} clips x {args.clip_s} s at {fps} fps)")
 
 

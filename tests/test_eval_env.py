@@ -50,6 +50,12 @@ def test_eval_cfg_with_payloads(base_cfg):
     params = cfg.events["set_payload"].params
     assert params["mass_kg"][0] == 0.0 and params["mass_kg"][block] == 0.1 and params["mass_kg"][-1] == 0.2
     assert params["offset_m"][block] == [0.02, 0.0, 0.0]
+    assert params["mount"] == "mouth"
+    # Mid-episode loading: all envs start with mass 0, same positions.
+    late = eval_env.make_eval_env_cfg(base_cfg, 2, 1000, payloads=payloads, mount="trunk", loaded_at_start=False)
+    assert set(late.events["set_payload"].params["mass_kg"]) == {0.0}
+    assert late.events["set_payload"].params["offset_m"] == params["offset_m"]
+    assert late.events["set_payload"].params["mount"] == "trunk"
     # The base cfg keeps the upstream robot and has no payload event.
     assert "set_payload" not in base_cfg.events
     assert cfg.scene.entities["robot"].spec_fn is not base_cfg.scene.entities["robot"].spec_fn

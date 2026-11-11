@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 import pytest
-import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -21,29 +20,41 @@ def upstream_spec():
     return get_walk_spec()
 
 
-def test_payload_body_adds_no_mass():
+@pytest.mark.parametrize("mount", ["mouth", "trunk"])
+def test_payload_body_adds_no_mass(mount):
     base = upstream_spec().compile()
-    model = payload.add_payload_body(upstream_spec()).compile()
+    model = payload.add_payload_body(upstream_spec(), mount).compile()
     assert model.nbody == base.nbody + 1
     assert model.body_mass.sum() == pytest.approx(base.body_mass.sum())
     assert model.nq == base.nq and model.nu == base.nu  # No new joint or actuator.
     body = model.body(payload.PAYLOAD_BODY)
-    assert model.body(body.parentid[0]).name == "trunk_base"
-    assert tuple(body.pos) == pytest.approx(payload.MOUNT_POS)
+    assert model.body(body.parentid[0]).name == payload.MOUNTS[mount].parent
+    assert tuple(body.pos) == pytest.approx(payload.MOUNTS[mount].pos)
     geom = model.geom("payload_visual")
     assert geom.contype[0] == 0 and geom.conaffinity[0] == 0  # No contact.
+
+
+def test_mouth_mount_is_the_upstream_mouth_site():
+    import mujoco
+
+    model = payload.add_payload_body(upstream_spec(), "mouth").compile()
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    site = data.site("mouth_tip").xpos
+    assert data.body(payload.PAYLOAD_BODY).xpos == pytest.approx(site, abs=1e-6)
+    # The beak is in front of the trunk origin and of the feet.
+    assert site[0] - data.body("trunk_base").xpos[0] > 0.03
 
 
 def test_robot_mass_constant_matches_model():
     assert upstream_spec().compile().body_mass.sum() == pytest.approx(payload.ROBOT_MASS_KG, abs=1e-3)
 
 
-def test_box_inertia():
-    # 0.12 kg box, 30 x 30 x 20 mm: Ixx = m/12 * (0.03^2 + 0.02^2), Izz = m/12 * (0.03^2 + 0.03^2).
-    inertia = payload.box_inertia(torch.tensor([0.12, 0.0]))
-    assert inertia.shape == (2, 3)
-    assert inertia[0].tolist() == pytest.approx([1.3e-5, 1.3e-5, 1.8e-5])
-    assert inertia[1].tolist() == [0.0, 0.0, 0.0]
+def test_unit_inertia():
+    # Box 30 x 30 x 20 mm, 1 kg: Ixx = (0.03^2 + 0.02^2) / 12, Izz = (0.03^2 + 0.03^2) / 12.
+    assert payload.MOUNTS["trunk"].unit_inertia() == pytest.approx([1.0833e-4, 1.0833e-4, 1.5e-4], rel=1e-3)
+    # Solid sphere, radius 15 mm, 1 kg: 2/5 * 0.015^2.
+    assert payload.MOUNTS["mouth"].unit_inertia() == pytest.approx([9.0e-5] * 3)
 
 
 def test_com_shift():

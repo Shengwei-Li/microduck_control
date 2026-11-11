@@ -1,9 +1,9 @@
 # Payload on a small biped: randomize, adapt or monitor?
 
 A small biped (Microduck, about 0.25 m tall) walks with a reinforcement-learning policy.
-We put an unknown payload on its trunk. This project asks three questions:
+It picks up an object of unknown mass with its beak. This project asks three questions:
 
-1. At which payload mass and offset does a standard walking policy fail, and how?
+1. At which payload mass does a standard walking policy fail, and how?
 2. Which method keeps the robot walking best: domain randomization of the payload,
    privileged payload information, or adaptation from observation history?
 3. Can a runtime monitor detect the failure early enough to stop the robot safely?
@@ -19,7 +19,7 @@ repository. We use it at a fixed commit and do not change it.
 |---|---|---|
 | D0 | Environment setup and speed test on one laptop GPU (RTX 5060, 8 GB) | Done |
 | D1 | Baseline policy P0 (upstream task, no payload) and evaluation protocol | Done |
-| D2 | Payload variants and the failure curve of P0 | Next |
+| D2 | Payload in the beak and the failure curve of P0 | In progress |
 | D3 | Payload randomization, privileged information, history adaptation | Planned |
 | D4 | Runtime monitors with CUSUM and conformal thresholds | Planned |
 
@@ -47,6 +47,17 @@ result without payload.
 Video (one robot per command, caption shows command and measured velocity):
 [results/video/p0_seed0_dev1000.mp4](results/video/p0_seed0_dev1000.mp4)
 
+## Payload setting
+
+The payload is a ball that is fixed to the tip of the beak. It appears 5 s after the
+start of the episode, as if the robot picks it up. The masses are 0 to 200 g (the robot
+is 0.737 kg). The hypotheses and the frozen test settings are in
+[prereg/D2_hypotheses.md](prereg/D2_hypotheses.md). They are committed before the test runs.
+
+Videos of P0 with a payload (development seed):
+[60 g](results/video/p0_seed0_mouth_60g_dev1000.mp4),
+[100 g](results/video/p0_seed0_mouth_100g_dev1000.mp4).
+
 ## How to run
 
 The training runs in WSL2 (Ubuntu 24.04) with the locked environment of the upstream
@@ -57,7 +68,8 @@ upstream folder:
 ```bash
 bash scripts/train_p0.sh 4096 3000 0
 uv run --locked python <this repo>/scripts/evaluate.py --checkpoint <run>/model_2999.pt --seed 1000 --out <folder>
-uv run --locked python <this repo>/scripts/record_video.py --checkpoint <run>/model_2999.pt --out <file>.mp4
+uv run --locked python <this repo>/scripts/evaluate.py --checkpoint <run>/model_2999.pt --seed 1000 --payload-mass-g 0 60 100 --out <folder>
+uv run --locked python <this repo>/scripts/record_video.py --checkpoint <run>/model_2999.pt --payload-mass-g 100 --out <file>.mp4
 uv run --locked --with pytest pytest -q <this repo>/tests
 ```
 
@@ -65,7 +77,8 @@ uv run --locked --with pytest pytest -q <this repo>/tests
 
 | Path | Content |
 |---|---|
-| `src/payload_duck/` | Evaluation environment (fixed conditions) and metrics |
+| `src/payload_duck/` | Payload body, evaluation environment (fixed conditions) and metrics |
 | `scripts/` | Training, evaluation, video, GPU monitor, speed test |
-| `tests/` | Unit tests for the metrics and the evaluation environment |
+| `tests/` | Unit tests for the payload, the metrics and the evaluation environment |
+| `prereg/` | Hypotheses, committed before the test runs |
 | `results/` | Training curves, evaluation summaries, videos |

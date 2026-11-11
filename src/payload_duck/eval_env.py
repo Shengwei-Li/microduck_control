@@ -10,8 +10,9 @@ the evaluation environment removes these sources of variation:
 3. Fixed velocity commands. Each environment gets one command from
    EVAL_COMMANDS and keeps it for the full episode.
 4. Head and body pose commands are zero (neutral head).
-5. Optional: a payload on the trunk with a fixed mass and position for each
-   environment (see payload.py).
+5. Optional: a payload with a fixed mass and position for each environment
+   (see payload.py). It can be there from the start, or appear at a fixed
+   time in the episode.
 
 The other domain randomization stays on (mass, joint friction, armature,
 IMU mounting error, encoder bias). They are part of the normal operating
@@ -44,13 +45,24 @@ FINAL_HEAD_COM_RANGE_M = 0.01
 NEVER_S = 1.0e9  # A resampling time longer than any episode.
 
 
-def make_eval_env_cfg(base_cfg, envs_per_command: int, seed: int, payloads=None):
+def payload_per_env(payloads, envs_per_command: int):
+    """Payload of each env: (mass_kg list, offset_m list) for a list of conditions (mass_kg, dx_m)."""
+    block = envs_per_command * len(EVAL_COMMANDS)
+    mass = [m for m, _ in payloads for _ in range(block)]
+    offset = [(dx, 0.0, 0.0) for _, dx in payloads for _ in range(block)]
+    return mass, offset
+
+
+def make_eval_env_cfg(base_cfg, envs_per_command: int, seed: int, payloads=None,
+                      mount: str = "mouth", loaded_at_start: bool = True):
     """Return a copy of the training env cfg with the fixed evaluation conditions.
 
     payloads: None (upstream robot, no payload body), or a list of conditions
     (mass_kg, dx_m). Each condition gets a full block of all commands.
     Env layout: env i has condition i // (envs_per_command * n_commands) and
     command (i // envs_per_command) % n_commands.
+    loaded_at_start: False starts all envs with mass 0. The caller then writes
+    the payload during the episode with payload.load().
     """
     cfg = deepcopy(base_cfg)
     n_conditions = 1 if payloads is None else len(payloads)
@@ -61,9 +73,10 @@ def make_eval_env_cfg(base_cfg, envs_per_command: int, seed: int, payloads=None)
     if payloads is not None:
         from payload_duck.payload import add_payload_to_cfg
 
-        mass = [m for m, _ in payloads for _ in range(block)]
-        offset = [(dx, 0.0, 0.0) for _, dx in payloads for _ in range(block)]
-        add_payload_to_cfg(cfg, mass, offset)
+        mass, offset = payload_per_env(payloads, envs_per_command)
+        if not loaded_at_start:
+            mass = [0.0] * len(mass)
+        add_payload_to_cfg(cfg, mass, offset, mount)
 
     # 1. No curriculum; domain randomization at its final range.
     cfg.curriculum = {}

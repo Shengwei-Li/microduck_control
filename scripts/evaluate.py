@@ -6,6 +6,8 @@ Run it from the upstream folder, so that it uses the upstream environment:
         --checkpoint logs/rsl_rl/velocity/<run>/model_2999.pt --seed 1000 --out <folder>
 
 Each env runs one episode (20 s) with one fixed command (see eval_env.py).
+With --payload-mass-g, the robot holds a payload in its beak. The payload
+appears at --payload-onset-s (default 5 s): the robot "picks up" the object.
 Writes <out>/summary.json (per command and overall) and <out>/per_env.csv.
 
 Seeds: training uses 0-99. Evaluation uses 1000-1999 for development
@@ -49,6 +51,9 @@ def parse_args():
                    help="payload masses in grams; without it the robot has no payload body")
     p.add_argument("--payload-dx-mm", type=float, nargs="+", default=[0.0],
                    help="payload forward offsets in mm (+ is forward); all mass x offset pairs are tested")
+    p.add_argument("--payload-mount", choices=["mouth", "trunk"], default="mouth")
+    p.add_argument("--payload-onset-s", type=float, default=5.0,
+                   help="time when the payload appears; 0 = from the start of the episode")
     args = p.parse_args()
     args.payloads = payload_conditions(args.payload_mass_g, args.payload_dx_mm)
     return args
@@ -73,7 +78,8 @@ def build(args, viewer=None):
     from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
 
     env_cfg = make_eval_env_cfg(load_env_cfg(TASK_ID), args.envs_per_command, args.seed,
-                                payloads=getattr(args, "payloads", None))
+                                payloads=args.payloads, mount=args.payload_mount,
+                                loaded_at_start=args.payload_onset_s <= 0.0)
     render_mode = None
     if viewer is not None:
         for key, value in viewer.items():
@@ -89,8 +95,23 @@ def build(args, viewer=None):
     return env, venv, policy
 
 
-def rollout(env, venv, policy, table):
-    """Run one episode length. Return numpy arrays vel (T,N,3), done, fell, nan (T,N)."""
+def payload_loader(env, args):
+    """Return (step, function) for mid-episode loading, or (None, None) if not used."""
+    if args.payloads is None or args.payload_onset_s <= 0.0:
+        return None, None
+    from payload_duck import payload
+    from payload_duck.eval_env import payload_per_env
+
+    mass, offset = payload_per_env(args.payloads, args.envs_per_command)
+    step = round(args.payload_onset_s / env.step_dt)
+    return step, lambda: payload.load(env, mass, offset, args.payload_mount)
+
+
+def rollout(env, venv, policy, table, load_step=None, load_fn=None):
+    """Run one episode length. Return numpy arrays vel (T,N,3), done, fell, nan (T,N).
+
+    If load_step is given, load_fn() runs before that step (the payload appears).
+    """
     robot = env.command_manager.get_term("twist").robot
     terms = env.termination_manager
     T = env.max_episode_length
@@ -100,7 +121,9 @@ def rollout(env, venv, policy, table):
     apply_commands(env, table)
     obs = venv.get_observations()  # Recompute: the reset drew random commands.
     with torch.inference_mode():
-        for _ in range(T):
+        for t in range(T):
+            if t == load_step:
+                load_fn()
             obs, _, dones, _ = venv.step(policy(obs))
             # An env that ended was reset and got a random command. It no longer
             # counts, but give it the fixed command again to keep the table simple.
@@ -129,10 +152,13 @@ def main():
     # One condition = one payload (mass, offset). Without payload there is one condition.
     conditions = args.payloads if args.payloads is not None else [(0.0, 0.0)]
     table, labels = command_table(args.envs_per_command, args.device, len(conditions))
-    vel, done, fell, nan = rollout(env, venv, policy, table)
+    load_step, load_fn = payload_loader(env, args)
+    vel, done, fell, nan = rollout(env, venv, policy, table, load_step, load_fn)
     dt = env.step_dt
 
-    m = metrics.per_env(vel, table.cpu().numpy(), done, fell, dt, args.settle_s)
+    # Tracking metrics start settle_s after the payload appears (or after the start).
+    onset_s = args.payload_onset_s if load_step is not None else 0.0
+    m = metrics.per_env(vel, table.cpu().numpy(), done, fell, dt, onset_s + args.settle_s)
     labels_arr = np.array(labels)
     block = args.envs_per_command * len(EVAL_COMMANDS)
     cond_of_env = np.arange(len(labels)) // block
@@ -144,6 +170,8 @@ def main():
         "settle_s": args.settle_s,
         "episode_s": env.max_episode_length * dt,
         "payload_body": args.payloads is not None,
+        "payload_mount": args.payload_mount if args.payloads is not None else None,
+        "payload_onset_s": onset_s,  # Fall times count from the start of the episode.
         "nan_episodes": int((metrics.first_true(nan) >= 0).sum()),
         "conditions": [],
     }
