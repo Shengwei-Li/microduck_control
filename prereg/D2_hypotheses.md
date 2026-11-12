@@ -6,6 +6,7 @@ Date: 2026-11-11. This file is committed before any run on the test seeds.
 
 - Robot and task: Microduck, `Mjlab-Velocity-Flat-MicroDuck`, upstream commit `bae39f5`.
 - Payload: a ball that is fixed to the tip of the beak (upstream site `mouth_tip`).
+  See the correction of 2026-11-12 at the end of this file: the mass is 78 mm in front of the tip.
   It has no contact with the ground or the robot. The robot mass is 0.737 kg.
 - The payload appears 5 s after the start of the episode. Before that, the robot
   walks without payload.
@@ -74,3 +75,25 @@ development seeds and then frozen.
 The hypotheses for the runtime monitors (D4) will be in a separate file. It will be
 committed before the monitor tests. It will include a simple baseline: a threshold
 on the position error of the neck joint.
+
+## Correction (2026-11-12)
+
+This correction changes the description of the setting. It does not change the
+code path of the physics, the hypotheses, the thresholds or any result.
+
+- The text above says that the payload is at the tip of the beak. This was wrong.
+  In the code that made all results (commits `d597832` and `b38276b`), the mass
+  of the payload is 78 mm in front of the tip of the beak and 8 mm below it
+  (default pose). Cause: the payload body had a position but no explicit centre
+  of mass, and MuJoCo then used the body position again as the centre of mass.
+- The correct description is: the robot holds a thin rod in its beak, and the
+  payload is at the end of the rod, 78 mm in front of the tip. With 100 g, the
+  centre of mass of the robot moves 19 mm forward.
+- The code now sets the centre of mass explicitly at the same place. A check
+  shows the same payload position and the same centre-of-mass shift as before.
+- The picture of the payload changed: a rod and a ball at the true position of
+  the mass. Before, the ball was drawn at the tip of the beak.
+- The trunk mount (control setting of the coarse sweep) had the same error: its
+  mass is 50 mm above the top of the trunk, not on it.
+- This was found after the test runs for H1. The H1 results are for the setting
+  as it was in the code. They are not run again.

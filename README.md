@@ -49,10 +49,13 @@ Video (one robot per command, caption shows command and measured velocity):
 
 ## Payload setting
 
-The payload is a ball that is fixed to the tip of the beak. It appears 5 s after the
-start of the episode, as if the robot picks it up. The masses are 0 to 200 g (the robot
+The robot holds a thin rod in its beak. The payload is a ball at the end of the rod,
+78 mm in front of the tip of the beak. The rod has no mass. The payload appears 5 s after
+the start of the episode, as if the robot picks it up. The masses are 0 to 200 g (the robot
 is 0.737 kg). The hypotheses and the frozen test settings are in
 [prereg/D2_hypotheses.md](prereg/D2_hypotheses.md). They are committed before the test runs.
+The first version of that file said that the payload is at the tip of the beak. This was
+an error in the description. The file has a dated correction. The results did not change.
 
 ## Result: failure curve of P0 (test seeds)
 

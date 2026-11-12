@@ -6,15 +6,19 @@ simulation can test many payloads in parallel.
 
 Mounts (where the payload is attached):
 
-  "mouth"  Main setting. The payload is a ball at the tip of the beak (the
-           upstream site "mouth_tip" on the head). The robot holds an object
-           of unknown mass. The beak is far in front of the feet, so a small
-           mass moves the centre of mass (CoM) of the robot forward.
-  "trunk"  Control setting. The payload is a box on top of the trunk, above
-           the whole-robot CoM (x = 0.6 mm, y = 0, z = 22 mm in the trunk
-           frame). It adds weight but does not move the CoM forward.
+  "mouth"  Main setting. The robot holds a thin rod in its beak, and the
+           payload is a ball at the end of the rod. The rod starts at the tip
+           of the beak (the upstream site "mouth_tip" on the head). The ball
+           is 78 mm in front of the tip. The beak is far in front of the feet,
+           so a small mass moves the centre of mass (CoM) of the robot forward.
+  "trunk"  Control setting. The payload is a box on a post, 50 mm above the top
+           of the trunk. It is above the whole-robot CoM (x = 0.6 mm, y = 0 in
+           the trunk frame). It adds weight but does not move the CoM forward.
 
-The offset moves the payload from the mount point (parent body frame).
+The rod and the post have no mass and no contact. They only show how the
+robot holds the payload.
+
+The offset moves the payload centre (parent body frame).
 With robot mass M = 0.737 kg, a payload of mass m at horizontal distance dx
 from the CoM moves the whole-robot CoM by m * dx / (M + m).
 
@@ -38,8 +42,9 @@ PAYLOAD_BODY = "payload"
 @dataclass(frozen=True)
 class Mount:
     parent: str  # Name of the body that carries the payload.
-    pos: tuple[float, float, float]  # Mount point in the parent frame (m).
-    geom: int  # mujoco geom type of the visual shape.
+    anchor: tuple[float, float, float]  # Where the robot holds the rod, in the parent frame (m).
+    pos: tuple[float, float, float]  # Centre of the payload (the mass is here), in the parent frame (m).
+    geom: int  # mujoco geom type of the payload shape.
     size: tuple[float, ...]  # Sphere: (radius,). Box: half sizes (x, y, z).
     rgba: tuple[float, float, float, float]
 
@@ -52,31 +57,38 @@ class Mount:
         return ((b * b + c * c) / 12.0, (a * a + c * c) / 12.0, (a * a + b * b) / 12.0)
 
 
+ROD_RADIUS_M = 0.002
+ROD_RGBA = (0.15, 0.15, 0.15, 1.0)
+
 MOUNTS = {
-    # pos = the upstream site "mouth_tip" in the frame of the head body "jaw_soft".
-    "mouth": Mount("jaw_soft", (-0.00809334, 0.0, -0.0777383), mujoco.mjtGeom.mjGEOM_SPHERE,
-                   (0.015,), (0.1, 0.35, 0.9, 1.0)),  # Blue: the robot is white and orange.
+    # anchor = the upstream site "mouth_tip" in the frame of the head body "jaw_soft".
+    # In this frame, -z is forward. The payload centre is at 2 x anchor.
+    "mouth": Mount("jaw_soft", (-0.00809334, 0.0, -0.0777383), (-0.01618668, 0.0, -0.1554766),
+                   mujoco.mjtGeom.mjGEOM_SPHERE, (0.015,), (0.1, 0.35, 0.9, 1.0)),  # Blue: the robot is white and orange.
     # z = 0.05 is the top of the trunk. 30 x 30 x 20 mm box.
-    "trunk": Mount("trunk_base", (0.0, 0.0, 0.05), mujoco.mjtGeom.mjGEOM_BOX,
-                   (0.015, 0.015, 0.010), (0.85, 0.2, 0.2, 1.0)),
+    "trunk": Mount("trunk_base", (0.0, 0.0, 0.05), (0.0, 0.0, 0.10),
+                   mujoco.mjtGeom.mjGEOM_BOX, (0.015, 0.015, 0.010), (0.85, 0.2, 0.2, 1.0)),
 }
 
 
 def add_payload_body(spec: mujoco.MjSpec, mount: str = "mouth") -> mujoco.MjSpec:
-    """Add the payload body (mass 0) to the robot. The shape is visual only: no contact."""
+    """Add the payload body (mass 0) to the robot. The shapes are visual only: no contact."""
     mt = MOUNTS[mount]
     body = spec.body(mt.parent).add_body(name=PAYLOAD_BODY, pos=list(mt.pos))
     body.mass = 0.0
     body.inertia = [0.0, 0.0, 0.0]
+    # The mass is at the body origin. Without this line, MuJoCo sets ipos = pos.
+    body.ipos = [0.0, 0.0, 0.0]
     body.explicitinertial = True
-    body.add_geom(
-        name="payload_visual",  # Not "*_collision": the upstream collision rule ignores it.
-        type=mt.geom,
-        size=list(mt.size),
-        contype=0,
-        conaffinity=0,
-        rgba=list(mt.rgba),
-    )
+    # The names end with "payload_visual" (the video script hides them by this
+    # name) and not with "_collision" (the upstream collision rule ignores them).
+    body.add_geom(name="payload_visual", type=mt.geom, size=list(mt.size),
+                  contype=0, conaffinity=0, rgba=list(mt.rgba))
+    # Rod from the anchor to the payload centre, in the payload body frame.
+    to_anchor = [a - p for a, p in zip(mt.anchor, mt.pos)]
+    body.add_geom(name="rod_payload_visual", type=mujoco.mjtGeom.mjGEOM_CYLINDER,
+                  fromto=to_anchor + [0.0, 0.0, 0.0], size=[ROD_RADIUS_M, 0.0, 0.0],
+                  contype=0, conaffinity=0, rgba=list(ROD_RGBA))
     return spec
 
 
@@ -90,26 +102,40 @@ def set_payload(env, env_ids, mass_kg, offset_m, mount="mouth") -> None:
     """Event: write the payload mass, inertia and position of each env into the model.
 
     mass_kg: one value per env (length num_envs).
-    offset_m: one (x, y, z) offset from the mount point per env (num_envs x 3).
+    offset_m: one (x, y, z) offset of the payload centre per env (num_envs x 3).
     """
     if env_ids is None:
         env_ids = torch.arange(env.num_envs, device=env.device)
     mass = torch.as_tensor(mass_kg, dtype=torch.float32, device=env.device)
     offset = torch.as_tensor(offset_m, dtype=torch.float32, device=env.device)
     assert mass.shape == (env.num_envs,) and offset.shape == (env.num_envs, 3)
+    write_payload(env, env_ids, mass[env_ids], mount, offset[env_ids])
 
+
+def payload_body_id(env) -> int:
+    """Index of the payload body in the model (body names have an entity prefix)."""
     mj_model = env.sim.mj_model
     ids = [i for i in range(mj_model.nbody) if mj_model.body(i).name.split("/")[-1] == PAYLOAD_BODY]
     assert len(ids) == 1, f"expected one payload body, found {len(ids)}"
-    body = ids[0]
+    return ids[0]
 
+
+def write_payload(env, env_ids, mass, mount="mouth", offset=None) -> None:
+    """Write mass and inertia (and the position, if offset is given) for the envs env_ids.
+
+    mass: (len(env_ids),) in kg. offset: (len(env_ids), 3) in m, or None to keep the position.
+    This only writes the model. The caller must make sure that the constants
+    that depend on the mass are computed again (see load()).
+    """
+    body = payload_body_id(env)
     mt = MOUNTS[mount]
-    pos = torch.tensor(mt.pos, dtype=torch.float32, device=env.device)
     unit_inertia = torch.tensor(mt.unit_inertia(), dtype=torch.float32, device=env.device)
     model = env.sim.model
-    model.body_mass[env_ids, body] = mass[env_ids]
-    model.body_inertia[env_ids, body] = mass[env_ids].unsqueeze(-1) * unit_inertia
-    model.body_pos[env_ids, body] = pos + offset[env_ids]
+    model.body_mass[env_ids, body] = mass
+    model.body_inertia[env_ids, body] = mass.unsqueeze(-1) * unit_inertia
+    if offset is not None:
+        pos = torch.tensor(mt.pos, dtype=torch.float32, device=env.device)
+        model.body_pos[env_ids, body] = pos + offset
 
 
 def load(env, mass_kg, offset_m, mount="mouth") -> None:

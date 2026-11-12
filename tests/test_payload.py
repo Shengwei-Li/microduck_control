@@ -30,20 +30,45 @@ def test_payload_body_adds_no_mass(mount):
     body = model.body(payload.PAYLOAD_BODY)
     assert model.body(body.parentid[0]).name == payload.MOUNTS[mount].parent
     assert tuple(body.pos) == pytest.approx(payload.MOUNTS[mount].pos)
-    geom = model.geom("payload_visual")
-    assert geom.contype[0] == 0 and geom.conaffinity[0] == 0  # No contact.
+    assert tuple(body.ipos) == (0.0, 0.0, 0.0)  # The mass is at the payload centre.
+    for name in ("payload_visual", "rod_payload_visual"):
+        geom = model.geom(name)
+        assert geom.contype[0] == 0 and geom.conaffinity[0] == 0  # No contact.
 
 
-def test_mouth_mount_is_the_upstream_mouth_site():
+def test_mouth_rod_starts_at_the_upstream_mouth_site():
     import mujoco
+    import numpy as np
 
     model = payload.add_payload_body(upstream_spec(), "mouth").compile()
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
     site = data.site("mouth_tip").xpos
-    assert data.body(payload.PAYLOAD_BODY).xpos == pytest.approx(site, abs=1e-6)
-    # The beak is in front of the trunk origin and of the feet.
+    centre = data.body(payload.PAYLOAD_BODY).xipos  # Where the mass is.
+    rod = model.geom("rod_payload_visual")
+    # The rod is a cylinder: its centre is halfway between the beak and the payload.
+    assert data.geom("rod_payload_visual").xpos == pytest.approx((site + centre) / 2, abs=1e-6)
+    assert 2 * rod.size[1] == pytest.approx(np.linalg.norm(centre - site), abs=1e-6)
+    # The payload is 78 mm in front of the beak, and the beak is in front of the trunk.
+    assert centre[0] - site[0] == pytest.approx(0.078, abs=1e-3)
     assert site[0] - data.body("trunk_base").xpos[0] > 0.03
+
+
+def test_no_head_mesh_inside_the_ball():
+    import mujoco
+    import numpy as np
+
+    model = payload.add_payload_body(upstream_spec(), "mouth").compile()
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    centre = data.geom("payload_visual").xpos
+    for g in range(model.ngeom):
+        if model.geom_type[g] != mujoco.mjtGeom.mjGEOM_MESH:
+            continue
+        m = model.geom_dataid[g]
+        vert = model.mesh_vert[model.mesh_vertadr[m]: model.mesh_vertadr[m] + model.mesh_vertnum[m]]
+        world = vert @ data.geom_xmat[g].reshape(3, 3).T + data.geom_xpos[g]
+        assert np.linalg.norm(world - centre, axis=1).min() > 0.015 + 0.02  # 20 mm clear of the ball.
 
 
 def test_robot_mass_constant_matches_model():
