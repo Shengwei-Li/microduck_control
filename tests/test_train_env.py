@@ -34,6 +34,27 @@ def test_train_cfg_adds_only_the_payload(base_cfg):
     assert "reset_payload" not in base_cfg.events  # The base cfg is not changed.
 
 
+def test_method_observations(base_cfg):
+    def cfg_of(task):
+        cfg = train_env.make_train_env_cfg(base_cfg, (0.0, 0.1))
+        train_env.apply_method_obs(cfg, train_env.TRAIN_TASKS[task])
+        return cfg.observations
+
+    base = base_cfg.observations
+    p1, p2, p3 = cfg_of("PayloadDuck-P1"), cfg_of("PayloadDuck-P2"), cfg_of("PayloadDuck-P3")
+    # P1: the same observations as upstream.
+    assert list(p1["actor"].terms) == list(base["actor"].terms) and p1["actor"].history_length is None
+    # P2: the true mass is the last term for the actor and the critic. No history.
+    assert list(p2["actor"].terms) == list(base["actor"].terms) + ["payload_mass"]
+    assert list(p2["critic"].terms) == list(base["critic"].terms) + ["payload_mass"]
+    assert p2["actor"].history_length is None
+    # P3: the actor has a history and no mass. Only the critic has the mass.
+    assert list(p3["actor"].terms) == list(base["actor"].terms)
+    assert p3["actor"].history_length == train_env.HISTORY_STEPS and p3["critic"].history_length is None
+    assert list(p3["critic"].terms)[-1] == "payload_mass"
+    assert "payload_mass" not in base["critic"].terms  # The base cfg is not changed.
+
+
 def test_tasks_register():
     from mjlab.tasks.registry import list_tasks, load_env_cfg
 

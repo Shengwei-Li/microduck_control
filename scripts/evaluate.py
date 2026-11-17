@@ -47,6 +47,9 @@ def parse_args():
     p.add_argument("--settle-s", type=float, default=2.0, help="ignore the first seconds for tracking metrics")
     p.add_argument("--out", required=True, help="output folder")
     p.add_argument("--device", default="cuda:0")
+    p.add_argument("--task", default=None,
+                   help="training task of the checkpoint, if its observations are not the upstream ones:\n"
+                        "PayloadDuck-P2 or PayloadDuck-P3 (needs --payload-mass-g)")
     p.add_argument("--payload-mass-g", type=float, nargs="+", default=None,
                    help="payload masses in grams; without it the robot has no payload body")
     p.add_argument("--payload-dx-mm", type=float, nargs="+", default=[0.0],
@@ -80,6 +83,12 @@ def build(args, viewer=None):
     env_cfg = make_eval_env_cfg(load_env_cfg(TASK_ID), args.envs_per_command, args.seed,
                                 payloads=args.payloads, mount=args.payload_mount,
                                 loaded_at_start=args.payload_onset_s <= 0.0)
+    task = getattr(args, "task", None)
+    if task is not None:  # Same observations as in the training of this method.
+        from payload_duck import train_env
+
+        assert args.payloads is not None, "--task needs the payload body: give --payload-mass-g"
+        train_env.apply_method_obs(env_cfg, train_env.TRAIN_TASKS[task])
     render_mode = None
     if viewer is not None:
         for key, value in viewer.items():
@@ -164,6 +173,7 @@ def main():
     cond_of_env = np.arange(len(labels)) // block
     summary = {
         "checkpoint": str(Path(args.checkpoint).resolve()),
+        "task": args.task,
         "upstream_commit": upstream_commit(),
         "seed": args.seed,
         "envs_per_command": args.envs_per_command,
