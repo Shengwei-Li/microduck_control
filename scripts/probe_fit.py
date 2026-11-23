@@ -59,6 +59,7 @@ def main():
     p.add_argument("--score", nargs="+", required=True)
     p.add_argument("--name", default="")
     p.add_argument("--out", default=None)
+    p.add_argument("--save-weights", default=None, help=".npy file for the 129 weights (128 inputs, then the intercept)")
     args = p.parse_args()
 
     hf, af, time_s, mf, onset = load([args.fit])
@@ -69,6 +70,9 @@ def main():
     xf, yf = samples(hf, af, mf, late)
     xs, ys = samples(hs, as_, ms, late)
     w = fit(xf, yf)
+    if args.save_weights:
+        Path(args.save_weights).parent.mkdir(parents=True, exist_ok=True)
+        np.save(args.save_weights, w)
     pred = xs @ w[:-1] + w[-1]
     result = {
         "name": args.name,
