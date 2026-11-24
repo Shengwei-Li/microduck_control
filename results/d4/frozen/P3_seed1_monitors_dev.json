@@ -1,0 +1,719 @@
+{
+  "name": "P3_seed1",
+  "kappa": 1.5,
+  "alpha": 0.05,
+  "monitors": {
+    "neck_plain": {
+      "mu": 0.081298828125,
+      "sigma": 0.119085791015625,
+      "threshold": 6.386135914193295,
+      "false_alarm_rate": 0.052083333333333336,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.033854166666666664,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.58,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.2786458333333333,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.6,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.7213541666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.62,
+          "falls": 2,
+          "caught": 1.0,
+          "median_lead_s": 1.48
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 0.9635416666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.64,
+          "falls": 42,
+          "caught": 0.8333333333333334,
+          "median_lead_s": 0.68
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 0.9010416666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.54,
+          "falls": 260,
+          "caught": 0.8538461538461538,
+          "median_lead_s": 0.54
+        }
+      }
+    },
+    "neck_cusum": {
+      "mu": 0.081298828125,
+      "sigma": 0.119085791015625,
+      "threshold": 89.83403898597595,
+      "false_alarm_rate": 0.058159722222222224,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.015625,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 1.22,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.3333333333333333,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 1.06,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.7864583333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.96,
+          "falls": 2,
+          "caught": 1.0,
+          "median_lead_s": 1.27
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 0.9557291666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.88,
+          "falls": 42,
+          "caught": 0.6428571428571429,
+          "median_lead_s": 0.6
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 0.7213541666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.78,
+          "falls": 260,
+          "caught": 0.5846153846153846,
+          "median_lead_s": 0.48
+        }
+      }
+    },
+    "residual_plain": {
+      "mu": 0.915677398443222,
+      "sigma": 0.2179453590452671,
+      "threshold": 14.45123314836993,
+      "false_alarm_rate": 0.05078125,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.010416666666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.5700000000000001,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.06770833333333333,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.48,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.2265625,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.44,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.5703125,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.42,
+          "falls": 2,
+          "caught": 1.0,
+          "median_lead_s": 1.69
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 0.9583333333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.38,
+          "falls": 42,
+          "caught": 1.0,
+          "median_lead_s": 0.77
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 1.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.3,
+          "falls": 260,
+          "caught": 1.0,
+          "median_lead_s": 0.68
+        }
+      }
+    },
+    "residual_cusum": {
+      "mu": 0.915677398443222,
+      "sigma": 0.2179453590452671,
+      "threshold": 134.0072077243529,
+      "false_alarm_rate": 0.051215277777777776,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.010416666666666666,
+          "alarm_before_payload": 0.0026041666666666665,
+          "median_delay_s": 5.86,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0026041666666666665,
+          "alarm_before_payload": 0.0026041666666666665,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.013020833333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.9400000000000001,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.057291666666666664,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.8,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.22395833333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.76,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.7447916666666666,
+          "alarm_before_payload": 0.0026041666666666665,
+          "median_delay_s": 0.66,
+          "falls": 2,
+          "caught": 1.0,
+          "median_lead_s": 1.58
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 1.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.48,
+          "falls": 42,
+          "caught": 1.0,
+          "median_lead_s": 0.68
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 1.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.38,
+          "falls": 260,
+          "caught": 1.0,
+          "median_lead_s": 0.62
+        }
+      }
+    },
+    "value_plain": {
+      "mu": -12.552515983581543,
+      "sigma": 0.4648494283676147,
+      "threshold": 3.953985559141905,
+      "false_alarm_rate": 0.05251736111111111,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.013020833333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.36,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.3020833333333333,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.18,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.859375,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.1,
+          "falls": 2,
+          "caught": 1.0,
+          "median_lead_s": 1.98
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 1.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.02,
+          "falls": 42,
+          "caught": 1.0,
+          "median_lead_s": 1.08
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 1.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.02,
+          "falls": 260,
+          "caught": 1.0,
+          "median_lead_s": 0.96
+        }
+      }
+    },
+    "value_cusum": {
+      "mu": -12.552515983581543,
+      "sigma": 0.4648494283676147,
+      "threshold": 31.994365116923312,
+      "false_alarm_rate": 0.052083333333333336,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.013020833333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.5,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.2994791666666667,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.34,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.7447916666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.24,
+          "falls": 2,
+          "caught": 1.0,
+          "median_lead_s": 1.78
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 1.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.12,
+          "falls": 42,
+          "caught": 1.0,
+          "median_lead_s": 0.98
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 1.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.04,
+          "falls": 260,
+          "caught": 1.0,
+          "median_lead_s": 0.9400000000000001
+        }
+      }
+    },
+    "probe_plain": {
+      "mu": 49.84710693359375,
+      "sigma": 39.671404284667965,
+      "threshold": 5.827675672324735,
+      "false_alarm_rate": 0.05295138888888889,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.005208333333333333,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.37,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.0859375,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.38,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.2265625,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.34,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.3333333333333333,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.34,
+          "falls": 2,
+          "caught": 0.5,
+          "median_lead_s": 2.14
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 0.6953125,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.36,
+          "falls": 42,
+          "caught": 0.9285714285714286,
+          "median_lead_s": 0.62
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 0.8567708333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.3,
+          "falls": 260,
+          "caught": 0.8692307692307693,
+          "median_lead_s": 0.68
+        }
+      }
+    },
+    "probe_cusum": {
+      "mu": 49.84710693359375,
+      "sigma": 39.671404284667965,
+      "threshold": 15.480366897470688,
+      "false_alarm_rate": 0.053385416666666664,
+      "by_mass": {
+        "0": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "20": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "40": {
+          "episodes": 384,
+          "alarm_rate": 0.0,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": null,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "60": {
+          "episodes": 384,
+          "alarm_rate": 0.005208333333333333,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.86,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "80": {
+          "episodes": 384,
+          "alarm_rate": 0.0546875,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.42,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "100": {
+          "episodes": 384,
+          "alarm_rate": 0.2604166666666667,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.44,
+          "falls": 0,
+          "caught": null,
+          "median_lead_s": null
+        },
+        "120": {
+          "episodes": 384,
+          "alarm_rate": 0.6432291666666666,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 1.12,
+          "falls": 2,
+          "caught": 0.5,
+          "median_lead_s": 2.12
+        },
+        "150": {
+          "episodes": 384,
+          "alarm_rate": 0.9661458333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.52,
+          "falls": 42,
+          "caught": 0.8333333333333334,
+          "median_lead_s": 0.6
+        },
+        "200": {
+          "episodes": 384,
+          "alarm_rate": 0.8802083333333334,
+          "alarm_before_payload": 0.0,
+          "median_delay_s": 0.34,
+          "falls": 260,
+          "caught": 0.8192307692307692,
+          "median_lead_s": 0.66
+        }
+      }
+    }
+  }
+}

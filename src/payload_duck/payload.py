@@ -167,3 +167,14 @@ def add_payload_to_cfg(cfg, mass_kg: list[float], offset_m: list[tuple[float, fl
         mode="startup",
         params={"mass_kg": list(mass_kg), "offset_m": [list(o) for o in offset_m], "mount": mount},
     )
+
+
+def drop(env, env_ids, mount="mouth") -> None:
+    """The robots env_ids let go of the payload now: its mass goes to zero.
+
+    Same steps as load(). The release has no delay: this is the best case.
+    """
+    zero = torch.zeros(len(env_ids), dtype=torch.float32, device=env.device)
+    write_payload(env, env_ids, zero, mount)
+    env.sim.recompute_constants(RecomputeLevel.set_const)
+    env.sim.forward()
