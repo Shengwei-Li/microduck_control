@@ -1,0 +1,84 @@
+{
+  "mode": "onset",
+  "fallback": "stand",
+  "seed": 2001,
+  "task": "PayloadDuck-P3",
+  "checkpoint": "/home/shengwei/projectD/third_party/microduck_rl/logs/rsl_rl/velocity/2026-11-18_13-42-38_PayloadDuck-P3_seed1/model_3998.pt",
+  "window_s": [
+    3.0,
+    13.0
+  ],
+  "commands": [
+    "stand",
+    "forward_slow",
+    "forward_fast",
+    "backward",
+    "turn",
+    "forward_turn"
+  ],
+  "by_mass": {
+    "0": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0026041666666666665
+    },
+    "20": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "40": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.005208333333333333
+    },
+    "60": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0234375
+    },
+    "80": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0078125,
+      "alarm_rate_residual": 0.12760416666666666
+    },
+    "100": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.125,
+      "alarm_rate_residual": 0.23177083333333334
+    },
+    "120": {
+      "episodes": 384,
+      "fall_rate": 0.0026041666666666665,
+      "fall_rate_moving": 0.003125,
+      "alarm_rate_neck": 0.5625,
+      "alarm_rate_residual": 0.6015625
+    },
+    "150": {
+      "episodes": 384,
+      "fall_rate": 0.049479166666666664,
+      "fall_rate_moving": 0.0375,
+      "alarm_rate_neck": 0.9583333333333334,
+      "alarm_rate_residual": 0.9505208333333334
+    },
+    "200": {
+      "episodes": 384,
+      "fall_rate": 0.5755208333333334,
+      "fall_rate_moving": 0.578125,
+      "alarm_rate_neck": 0.953125,
+      "alarm_rate_residual": 1.0
+    }
+  }
+}

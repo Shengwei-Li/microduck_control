@@ -1,0 +1,84 @@
+{
+  "mode": "neck",
+  "fallback": "drop",
+  "seed": 2000,
+  "task": "PayloadDuck-P3",
+  "checkpoint": "/home/shengwei/projectD/third_party/microduck_rl/logs/rsl_rl/velocity/2026-11-17_18-12-10_PayloadDuck-P3_seed0/model_3998.pt",
+  "window_s": [
+    3.0,
+    13.0
+  ],
+  "commands": [
+    "stand",
+    "forward_slow",
+    "forward_fast",
+    "backward",
+    "turn",
+    "forward_turn"
+  ],
+  "by_mass": {
+    "0": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "20": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "40": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "60": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0078125
+    },
+    "80": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.033854166666666664,
+      "alarm_rate_residual": 0.0703125
+    },
+    "100": {
+      "episodes": 384,
+      "fall_rate": 0.0026041666666666665,
+      "fall_rate_moving": 0.003125,
+      "alarm_rate_neck": 0.2838541666666667,
+      "alarm_rate_residual": 0.390625
+    },
+    "120": {
+      "episodes": 384,
+      "fall_rate": 0.0390625,
+      "fall_rate_moving": 0.046875,
+      "alarm_rate_neck": 0.6875,
+      "alarm_rate_residual": 0.7890625
+    },
+    "150": {
+      "episodes": 384,
+      "fall_rate": 0.3255208333333333,
+      "fall_rate_moving": 0.34375,
+      "alarm_rate_neck": 0.9375,
+      "alarm_rate_residual": 1.0
+    },
+    "200": {
+      "episodes": 384,
+      "fall_rate": 0.625,
+      "fall_rate_moving": 0.6375,
+      "alarm_rate_neck": 0.7578125,
+      "alarm_rate_residual": 1.0
+    }
+  }
+}

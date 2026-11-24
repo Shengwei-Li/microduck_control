@@ -1,0 +1,84 @@
+{
+  "mode": "residual",
+  "fallback": "stand",
+  "seed": 2000,
+  "task": null,
+  "checkpoint": "/home/shengwei/projectD/third_party/microduck_rl/logs/rsl_rl/velocity/2026-11-11_21-42-43_PayloadDuck-P1_seed0/model_3998.pt",
+  "window_s": [
+    3.0,
+    13.0
+  ],
+  "commands": [
+    "stand",
+    "forward_slow",
+    "forward_fast",
+    "backward",
+    "turn",
+    "forward_turn"
+  ],
+  "by_mass": {
+    "0": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "20": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "40": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0026041666666666665
+    },
+    "60": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0078125
+    },
+    "80": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.052083333333333336,
+      "alarm_rate_residual": 0.0546875
+    },
+    "100": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.2890625,
+      "alarm_rate_residual": 0.1796875
+    },
+    "120": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.6171875,
+      "alarm_rate_residual": 0.3802083333333333
+    },
+    "150": {
+      "episodes": 384,
+      "fall_rate": 0.036458333333333336,
+      "fall_rate_moving": 0.034375,
+      "alarm_rate_neck": 0.953125,
+      "alarm_rate_residual": 0.7265625
+    },
+    "200": {
+      "episodes": 384,
+      "fall_rate": 0.3932291666666667,
+      "fall_rate_moving": 0.421875,
+      "alarm_rate_neck": 0.9765625,
+      "alarm_rate_residual": 1.0
+    }
+  }
+}

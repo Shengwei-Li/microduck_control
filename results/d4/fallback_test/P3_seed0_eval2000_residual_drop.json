@@ -1,0 +1,84 @@
+{
+  "mode": "residual",
+  "fallback": "drop",
+  "seed": 2000,
+  "task": "PayloadDuck-P3",
+  "checkpoint": "/home/shengwei/projectD/third_party/microduck_rl/logs/rsl_rl/velocity/2026-11-17_18-12-10_PayloadDuck-P3_seed0/model_3998.pt",
+  "window_s": [
+    3.0,
+    13.0
+  ],
+  "commands": [
+    "stand",
+    "forward_slow",
+    "forward_fast",
+    "backward",
+    "turn",
+    "forward_turn"
+  ],
+  "by_mass": {
+    "0": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "20": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "40": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0
+    },
+    "60": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0,
+      "alarm_rate_residual": 0.0078125
+    },
+    "80": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.0234375,
+      "alarm_rate_residual": 0.049479166666666664
+    },
+    "100": {
+      "episodes": 384,
+      "fall_rate": 0.0026041666666666665,
+      "fall_rate_moving": 0.003125,
+      "alarm_rate_neck": 0.2526041666666667,
+      "alarm_rate_residual": 0.203125
+    },
+    "120": {
+      "episodes": 384,
+      "fall_rate": 0.0,
+      "fall_rate_moving": 0.0,
+      "alarm_rate_neck": 0.515625,
+      "alarm_rate_residual": 0.5729166666666666
+    },
+    "150": {
+      "episodes": 384,
+      "fall_rate": 0.057291666666666664,
+      "fall_rate_moving": 0.059375,
+      "alarm_rate_neck": 0.640625,
+      "alarm_rate_residual": 0.9583333333333334
+    },
+    "200": {
+      "episodes": 384,
+      "fall_rate": 0.057291666666666664,
+      "fall_rate_moving": 0.05625,
+      "alarm_rate_neck": 0.8203125,
+      "alarm_rate_residual": 1.0
+    }
+  }
+}
