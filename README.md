@@ -23,6 +23,10 @@ Short answers, from the tests below:
 We wrote the hypotheses before each test. Of 17 hypotheses, 14 hold, 2 fail, and
 1 could not be tested as written. The sections below give each result.
 
+- Report (6 pages): [report/main.pdf](report/main.pdf)
+- Video (40 s): [results/video/demo.mp4](results/video/demo.mp4). It shows one typical
+  episode for each condition, side by side. The numbers in its text come from the tests.
+
 This work is in simulation only. It uses the
 [microduck_rl](https://github.com/pollen-robotics/microduck_rl) task from Pollen Robotics
 (MuJoCo Warp through mjlab, PPO from rsl_rl). The upstream code is not part of this
@@ -100,9 +104,10 @@ to fall. The payload also pushes the head down, because the neck servos are soft
 moves the payload farther forward. H1 used the same policy as the development result,
 so it is a check on new seeds, not a strong test.
 
-Videos of P0 with a payload (development seed):
+Videos of P0 with a payload, all six commands (development seed):
 [60 g](results/video/p0_seed0_mouth_60g_dev1000.mp4),
 [100 g](results/video/p0_seed0_mouth_100g_dev1000.mp4).
+Their text says "in the beak". The payload is at the end of the rod, as in the section above.
 
 ## Result: three methods against the payload (test seeds)
 
@@ -279,6 +284,10 @@ uv run --locked python $R/scripts/judge_d4.py --offline $R/results/d4/monitors_t
 
 # Figures, from the result files in this repository
 uv run --locked python $R/scripts/make_figures.py
+
+# Video: one clip for each condition, then put them together
+uv run --locked python $R/scripts/record_clip.py --checkpoint <run>/model_3998.pt --command forward_fast --payload-mass-g 200 --monitors <file>.json --dynamics <model>.pt --mode residual --fallback drop --expect walk --out <folder>/s3_p1_drop
+uv run --locked python $R/scripts/make_demo.py --clips <folder>
 ```
 
 For P1 and P0c, do not give `--task` to the evaluation scripts. Their observation is

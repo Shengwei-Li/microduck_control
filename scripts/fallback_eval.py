@@ -38,6 +38,53 @@ from payload_duck.eval_env import EVAL_COMMANDS, apply_commands, command_table, 
 SIGNALS = ("neck", "residual")
 
 
+class OnlineMonitors:
+    """The neck and residual monitors, step by step during an episode (plain thresholds).
+
+    monitors_json: file from monitor_eval.py with the scales and thresholds.
+    alarm[signal]: step of the first alarm of each robot, -1 = none.
+    """
+
+    def __init__(self, env, task, monitors_json, dynamics_pt, device, from_s=3.0, to_s=13.0):
+        settings = json.loads(Path(monitors_json).read_text())["monitors"]
+        self.settings = {s: settings[s + "_plain"] for s in SIGNALS}
+        model = Dynamics()
+        model.load_state_dict(torch.load(dynamics_pt, map_location="cpu"))
+        self.model = model.to(device).eval()
+
+        manager = env.observation_manager
+        steps = train_env.TRAIN_TASKS[task].actor_history if task else 0
+        names = list(manager.active_terms["actor"])
+        dims = [d[0] // max(steps, 1) for d in manager.group_obs_term_dim["actor"]]
+        if names[-1] == "payload_mass":
+            names, dims = names[:-1], dims[:-1]
+        self.cols = torch.tensor(newest_frame_columns(dims, steps), device=device)
+        self.terms_of = monitor.term_slices(names, dims)
+        self.joint_names = env.command_manager.get_term("twist").robot.joint_names
+        self.first, self.last = round(from_s / env.step_dt), round(to_s / env.step_dt)
+        self.alarm = {s: torch.full((env.num_envs,), -1, dtype=torch.long, device=device) for s in SIGNALS}
+        self.prev = None
+
+    def step(self, obs, action, t, running):
+        """Call once per control step, before the env step. Return {signal: robots with their first alarm now}.
+
+        running: robots that are still in their first episode.
+        """
+        if not self.first <= t < self.last:
+            return {}
+        frame = obs["actor"][:, self.cols]
+        signal = {"neck": monitor.neck_error(frame, self.terms_of, self.joint_names)}
+        if self.prev is not None:
+            signal["residual"] = self.model.residual(self.prev[0], self.prev[1], frame)
+        self.prev = (frame, action)
+        hits = {}
+        for s, x in signal.items():
+            z = (x - self.settings[s]["mu"]) / self.settings[s]["sigma"]
+            hits[s] = (z > self.settings[s]["threshold"]) & running & (self.alarm[s] < 0)
+            self.alarm[s][hits[s]] = t
+        return hits
+
+
 def main():
     extra = argparse.ArgumentParser(add_help=False)
     extra.add_argument("--mode", choices=["none", "neck", "residual", "onset"], required=True)
@@ -55,33 +102,17 @@ def main():
     torch.manual_seed(args.seed)
     env, venv, policy = evaluate.build(args)
     dev = args.device
-    settings = json.loads(Path(own.monitors).read_text())["monitors"]
-    settings = {s: settings[s + "_plain"] for s in SIGNALS}
-    model = Dynamics()
-    model.load_state_dict(torch.load(own.dynamics, map_location="cpu"))
-    model = model.to(dev).eval()
-
-    manager = env.observation_manager
-    steps = train_env.TRAIN_TASKS[args.task].actor_history if args.task else 0
-    names = list(manager.active_terms["actor"])
-    dims = [d[0] // max(steps, 1) for d in manager.group_obs_term_dim["actor"]]
-    if names[-1] == "payload_mass":
-        names, dims = names[:-1], dims[:-1]
-    cols = torch.tensor(newest_frame_columns(dims, steps), device=dev)
-    terms_of = monitor.term_slices(names, dims)
-    robot = env.command_manager.get_term("twist").robot
+    monitors = OnlineMonitors(env, args.task, own.monitors, own.dynamics, dev, own.from_s, own.to_s)
+    alarm = monitors.alarm
 
     table, labels = command_table(args.envs_per_command, dev, len(args.payloads))
     table = table.clone()
     load_step, load_fn = evaluate.payload_loader(env, args)
     terms = env.termination_manager
-    first, last = round(own.from_s / env.step_dt), round(own.to_s / env.step_dt)
 
     n = env.num_envs
-    alarm = {s: torch.full((n,), -1, dtype=torch.long, device=dev) for s in SIGNALS}
     fall_step = torch.full((n,), -1, dtype=torch.long, device=dev)
     done_step = torch.full((n,), -1, dtype=torch.long, device=dev)
-    prev = None
     venv.reset()
     apply_commands(env, table)
     obs = venv.get_observations()
@@ -93,20 +124,11 @@ def main():
                     table[:] = 0.0
                     apply_commands(env, table)
             action = policy(obs)
-            if first <= t < last:
-                frame = obs["actor"][:, cols]
-                signal = {"neck": monitor.neck_error(frame, terms_of, robot.joint_names)}
-                if prev is not None:
-                    signal["residual"] = model.residual(prev[0], prev[1], frame)
-                prev = (frame, action)
-                for s, x in signal.items():
-                    z = (x - settings[s]["mu"]) / settings[s]["sigma"]
-                    hit = (z > settings[s]["threshold"]) & (done_step < 0) & (alarm[s] < 0)
-                    alarm[s][hit] = t
-                    if own.mode == s and own.fallback == "stand":
-                        table[hit] = 0.0  # The command stays zero to the end.
-                    elif own.mode == s and hit.any():
-                        payload.drop(env, torch.nonzero(hit)[:, 0], args.payload_mount)
+            for s, hit in monitors.step(obs, action, t, done_step < 0).items():
+                if own.mode == s and own.fallback == "stand":
+                    table[hit] = 0.0  # The command stays zero to the end.
+                elif own.mode == s and hit.any():
+                    payload.drop(env, torch.nonzero(hit)[:, 0], args.payload_mount)
             obs, _, dones, _ = venv.step(action)
             apply_commands(env, table)
             running = done_step < 0

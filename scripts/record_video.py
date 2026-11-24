@@ -76,7 +76,7 @@ def main():
     args.envs_per_command = 1  # One robot per command; build() reads this.
     args.payloads = evaluate.payload_conditions(
         None if args.payload_mass_g is None else [args.payload_mass_g], [args.payload_dx_mm])
-    where = "in the beak" if args.payload_mount == "mouth" else f"on the trunk, {args.payload_dx_mm:+.0f} mm forward"
+    where = "on a rod in the beak" if args.payload_mount == "mouth" else f"on the trunk, {args.payload_dx_mm:+.0f} mm forward"
     payload_text = None if args.payloads is None else f"payload {args.payload_mass_g:.0f} g {where}"
     torch.manual_seed(args.seed)
     viewer = {

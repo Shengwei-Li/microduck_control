@@ -1,0 +1,29 @@
+{
+  "task": "PayloadDuck-P2",
+  "checkpoint": "/home/shengwei/projectD/third_party/microduck_rl/logs/rsl_rl/velocity/2026-11-15_17-23-27_PayloadDuck-P2_seed0/model_3998.pt",
+  "seed": 1000,
+  "candidate": 0,
+  "candidates_fell": [
+    false,
+    false,
+    false,
+    false
+  ],
+  "command": "backward",
+  "command_value": [
+    -0.3,
+    0.0,
+    0.0
+  ],
+  "payload_mass_g": 100.0,
+  "payload_onset_s": 5.0,
+  "mode": "none",
+  "fallback": "stand",
+  "from_s": 3.5,
+  "fps": 50,
+  "frames": 325,
+  "fall_s": null,
+  "fallback_s": null,
+  "alarm_s": null,
+  "mean_vx": -0.125
+}
