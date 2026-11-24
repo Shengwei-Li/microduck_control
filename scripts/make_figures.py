@@ -3,7 +3,7 @@
     python make_figures.py
 
 Writes results/d3/methods_test.png, results/d3/probe_test.png and
-results/d4/monitors_test.png. Lines are the median over the 3 training seeds.
+results/d4/monitors_test.png, and a PDF of each in report/figures/. Lines are the median over the 3 training seeds.
 Bands and error bars are the lowest and the highest training seed.
 """
 
@@ -24,8 +24,8 @@ MASSES = [0, 20, 40, 60, 80, 100, 120, 150, 200]
 
 # One fixed colour and marker for each policy, in all figures.
 STYLE = {
-    "P0": ("#2a78d6", "o", "P0: no payload in training"),
-    "P0c": ("#eb6834", "s", "P0c: more training, no payload"),
+    "P0": ("#2a78d6", "o", "P0: baseline"),
+    "P0c": ("#eb6834", "s", "P0c: control, no payload"),
     "P1": ("#1baf7a", "^", "P1: random payload"),
     "P2": ("#eda100", "D", "P2: knows the mass"),
     "P3": ("#e87ba4", "v", "P3: observation history"),
@@ -39,6 +39,21 @@ plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
     "legend.frameon": False, "lines.linewidth": 2.0, "lines.markersize": 5,
 })
+
+
+def save(fig, png):
+    """Write the PNG (for the README) and a PDF of the same figure (for the report)."""
+    fig.savefig(png, dpi=160)
+    pdf_dir = ROOT / "report" / "figures"
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    # In the report, the caption gives the notes: hide the note lines of the figure.
+    if fig._suptitle is not None:
+        fig._suptitle.set_visible(False)
+    for text in fig.texts:
+        text.set_visible(False)
+    fig.tight_layout(rect=getattr(fig, "report_rect", (0, 0, 1, 1)))
+    fig.savefig(pdf_dir / (Path(png).stem + ".pdf"))
+    plt.close(fig)
 
 
 def training_range(ax, x, m):
@@ -70,13 +85,13 @@ def methods_figure():
     def series(method, key):
         return [[float(table[method][s][m][key]) for m in MASSES] for s in sorted(table[method])]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.9))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.6, 3.7))
     training_range(ax1, MASSES, 0.97)
     band(ax1, MASSES, [[float(p0[(m, "ALL")]["fall_rate"]) for m in MASSES]], "P0")
     for method in ("P0c", "P1", "P2", "P3"):
         band(ax1, MASSES, series(method, "fall_rate"), method)
     ax1.set(xlabel="payload mass (g)", ylabel="fall rate, all commands", ylim=(-0.02, 1.02), title="Falls")
-    ax1.legend(loc="center left", fontsize=8)
+    fig.legend(*ax1.get_legend_handles_labels(), loc="lower center", ncol=5, fontsize=8, columnspacing=1.2, handlelength=2.0)
 
     training_range(ax2, MASSES, 0.085)
     band(ax2, MASSES, [[float(p0[(m, "backward")]["mean_vx"]) for m in MASSES]], "P0", label=False)
@@ -87,14 +102,14 @@ def methods_figure():
     ax2.set(xlabel="payload mass (g)", ylabel="mean forward velocity (m/s)", ylim=(-0.32, 0.1),
             title="Backward walking: velocity against payload")
     fig.suptitle("Test seeds 2000 and 2001, 768 episodes per mass and policy. Line: median of 3 training seeds. Band: lowest to highest seed.",
-                 fontsize=8, color=MUTED, y=0.995)
-    fig.tight_layout()
-    fig.savefig(R / "d3" / "methods_test.png", dpi=160)
-    plt.close(fig)
+                 fontsize=7.5, color=MUTED, y=0.995)
+    fig.report_rect = (0, 0.07, 1, 1)  # Room for the legend below the panels.
+    fig.tight_layout(rect=(0, 0.07, 1, 0.97))
+    save(fig, R / "d3" / "methods_test.png")
 
 
 def probe_figure():
-    fig, ax = plt.subplots(figsize=(6.2, 3.6))
+    fig, ax = plt.subplots(figsize=(4.8, 3.2))
     for method in ("P1", "P3"):
         runs = [json.loads((R / "d3" / "probe" / f"{method}_seed{s}.json").read_text())["r2_by_time"] for s in range(3)]
         t = np.array([float(k) for k in runs[0]])
@@ -108,11 +123,10 @@ def probe_figure():
     ax.set(xlabel="time in the episode (s)", ylabel="R$^2$ of the linear probe", ylim=(-0.27, 1.0),
            title="Payload mass from the last hidden layer of the actor")
     ax.legend(loc="center right", fontsize=8)
-    fig.text(0.01, 0.005, "Fit on development seed 1000, scored on test seeds 2000 and 2001. Values below -0.25 are drawn at -0.25.",
+    fig.text(0.01, 0.005, "Fit on development seed 1000, scored on test seeds 2000 and 2001.\nValues below -0.25 are drawn at -0.25.",
              fontsize=7, color=MUTED)
-    fig.tight_layout(rect=(0, 0.03, 1, 1))
-    fig.savefig(R / "d3" / "probe_test.png", dpi=160)
-    plt.close(fig)
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
+    save(fig, R / "d3" / "probe_test.png")
 
 
 def monitors_figure():
@@ -128,7 +142,7 @@ def monitors_figure():
             elif r["quantity"] == "alarm_rate_residual":
                 alarm[key][int(r["payload_mass_g"])] = float(r["value"])
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3.9))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8.6, 3.7))
     modes = [("none", "no fallback"), ("residual", "residual\nmonitor,\nstand"), ("onset", "stand when\nthe payload\nappears"),
              ("neck_drop", "neck\nmonitor,\ndrop"), ("residual_drop", "residual\nmonitor,\ndrop")]
     width = 0.36
@@ -154,17 +168,16 @@ def monitors_figure():
         ax2.plot(MASSES, np.median(a, 0), color=color, marker=marker, markeredgecolor=SURFACE, markeredgewidth=0.8)
         ax2.plot(MASSES, np.median(f_, 0), color=color, marker=marker, markeredgecolor=SURFACE, markeredgewidth=0.8,
                  linestyle=(0, (2, 2)), linewidth=1.5)
-    ax2.plot([], [], color=MUTED, label="alarm rate of the residual monitor")
-    ax2.plot([], [], color=MUTED, linestyle=(0, (2, 2)), linewidth=1.5, label="fall rate without fallback")
+    ax2.plot([], [], color=MUTED, label="alarm, residual monitor")
+    ax2.plot([], [], color=MUTED, linestyle=(0, (2, 2)), linewidth=1.5, label="fall, no fallback")
     ax2.text(152, 0.70, "P1", color=INK, fontsize=8, ha="left")
     ax2.text(128, 0.80, "P3", color=INK, fontsize=8, ha="right")
     ax2.set(xlabel="payload mass (g)", ylabel="fraction of episodes", ylim=(-0.02, 1.02), title="The monitor stops more robots than would fall")
-    ax2.legend(loc="center left", fontsize=8)
+    ax2.legend(loc=(0.03, 0.42), fontsize=8)
     fig.suptitle("Test seeds 2000 and 2001. Median of 3 training seeds. Error bars: lowest to highest seed. Target false-alarm rate 0.05.",
-                 fontsize=8, color=MUTED, y=0.995)
+                 fontsize=7.5, color=MUTED, y=0.995)
     fig.tight_layout()
-    fig.savefig(R / "d4" / "monitors_test.png", dpi=160)
-    plt.close(fig)
+    save(fig, R / "d4" / "monitors_test.png")
 
 
 if __name__ == "__main__":

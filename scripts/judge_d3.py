@@ -85,7 +85,7 @@ def main():
         for method in POLICIES:
             for s, pm in enumerate(M[method]):
                 for m in MASSES:
-                    w.writerow([method, s, m, pm[m]["episodes"]] + [round(float(pm[m][k]), 4) for k in ("fall_rate", "rmse_xy", "vx_backward", "vx_forward_fast")])
+                    w.writerow([method, s, m, pm[m]["episodes"]] + [round(float(pm[m][k]), 6) for k in ("fall_rate", "rmse_xy", "vx_backward", "vx_forward_fast")])
 
     print("episodes per mass and policy:", M["P1"][0][0]["episodes"])
     for m in MASSES:

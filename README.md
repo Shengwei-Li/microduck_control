@@ -128,15 +128,15 @@ Test seeds 2000 and 2001, 768 episodes per mass and policy. Median of 3 training
 | Fall rate at 100 g | 0.346 | 0 | 0 | 0.001 |
 | Fall rate at 150 g | 0.896 | 0.046 | 0.012 | 0.124 |
 | Fall rate at 200 g | 0.993 | 0.462 | 0.465 | 0.658 |
-| Tracking RMSE at 0 g (m/s) | 0.181 | 0.180 | 0.181 | 0.180 |
-| Tracking RMSE, mean of 20 to 100 g (m/s) | 0.194 | 0.161 | 0.163 | 0.158 |
+| Tracking RMSE at 0 g (m/s) | 0.180 | 0.180 | 0.181 | 0.180 |
+| Tracking RMSE, mean of 20 to 100 g (m/s) | 0.193 | 0.161 | 0.163 | 0.158 |
 | Change of backward velocity, 0 to 100 g (m/s) | 0.175 | 0.127 | 0.051 | 0.067 |
 | Change of forward_fast velocity, 0 to 100 g (m/s) | 0.172 | 0.108 | 0.019 | 0.047 |
 
 | Hypothesis | Result |
 |---|---|
 | H2a. P1 has a fall rate of at most 0.05 for each mass up to 100 g | Holds: the highest value is 0 |
-| H2b. Without payload, the tracking RMSE of P1 is at least 5 % higher than that of P0c | Fails: 0.180 against 0.181 |
+| H2b. Without payload, the tracking RMSE of P1 is at least 5 % higher than that of P0c | Fails: 0.1796 against 0.1805, a ratio of 0.995 |
 | H3a. From 20 to 100 g, P3 closes at least half of the gap in tracking RMSE between P1 and P2 | Not supported: P2 is not better than P1, so there is no gap |
 | H3b. At 150 g, P3 has a lower fall rate than P1 | Fails: 0.124 against 0.046 |
 | H4. A linear model reads the payload mass from the last hidden layer of the P3 actor, R^2 above 0.7 | Holds: 0.861 |
