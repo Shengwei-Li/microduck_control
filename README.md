@@ -1,14 +1,46 @@
-# Payload on a small biped: randomize, adapt or monitor?
+<h1 align="center">Payload on a small biped: randomize, adapt, or monitor?</h1>
 
-A small biped (Microduck, about 0.25 m tall) walks with a reinforcement-learning policy.
-It picks up an object of unknown mass with its beak. This project asks three questions:
+<p align="center">
+A simulation study of a walking policy from reinforcement learning that picks up an object of unknown mass.
+</p>
+
+<p align="center">
+<img alt="Python 3.12" src="https://img.shields.io/badge/python-3.12-3776ab?style=flat-square">
+<img alt="mjlab 1.3.0" src="https://img.shields.io/badge/mjlab-1.3.0%20(MuJoCo%20Warp)-4a4a4a?style=flat-square">
+<img alt="PyTorch 2.9" src="https://img.shields.io/badge/PyTorch-2.9-ee4c2c?style=flat-square">
+<img alt="17 preregistered hypotheses" src="https://img.shields.io/badge/hypotheses-17%20preregistered-1baf7a?style=flat-square">
+</p>
+
+<p align="center">
+<a href="report/main.pdf"><b>Report (PDF, 6 pages)</b></a> ·
+<a href="results/video/demo.mp4"><b>Video (40 s)</b></a> ·
+<a href="prereg/"><b>Hypotheses</b></a> ·
+<a href="#results-in-short"><b>Results</b></a>
+</p>
+
+<p align="center">
+<img src="results/video/demo_part3.gif" width="900" alt="Three robots with a payload of 200 g: no fallback, stand at the alarm, drop the payload at the alarm">
+</p>
+<p align="center"><sub>
+Part 3 of the video. The payload (200 g) is outside the training range. Left: no fallback. Middle: the robot gets the command to stand at the alarm. Right: it drops the payload at the alarm.
+</sub></p>
+
+## Overview
+
+A small biped (Microduck, about 0.25 m tall, 0.74 kg) walks with a reinforcement-learning
+policy. It picks up an object of unknown mass with its beak. This project asks three questions:
 
 1. At which payload mass does a standard walking policy fail, and how?
 2. Which method keeps the robot walking best: domain randomization of the payload,
    privileged payload information, or adaptation from observation history?
 3. Can a runtime monitor detect a payload that is too heavy, early enough to prevent the fall?
 
-Short answers, from the tests below:
+This work is in simulation only. It uses the
+[microduck_rl](https://github.com/pollen-robotics/microduck_rl) task from Pollen Robotics
+(MuJoCo Warp through mjlab, PPO from rsl_rl). The upstream code is not part of this
+repository. We use it at a fixed commit and do not change it.
+
+## Results in short
 
 1. A policy trained without payload starts to fall at 80 g (11 % of the robot mass).
    Its velocity changes before it falls.
@@ -21,28 +53,30 @@ Short answers, from the tests below:
    of the falls. To stand after the alarm does not help. To drop the payload does.
 
 We wrote the hypotheses before each test. Of 17 hypotheses, 14 hold, 2 fail, and
-1 could not be tested as written. The sections below give each result.
+1 could not be tested as written.
 
-- Report (6 pages): [report/main.pdf](report/main.pdf)
-- Video (40 s): [results/video/demo.mp4](results/video/demo.mp4). It shows one typical
-  episode for each condition, side by side. The numbers in its text come from the tests.
+![Fall rate and backward velocity against the payload mass](results/d3/methods_test.png)
 
-This work is in simulation only. It uses the
-[microduck_rl](https://github.com/pollen-robotics/microduck_rl) task from Pollen Robotics
-(MuJoCo Warp through mjlab, PPO from rsl_rl). The upstream code is not part of this
-repository. We use it at a fixed commit and do not change it.
+![Fall rate with each fallback, and the alarm rate against the payload mass](results/d4/monitors_test.png)
 
-## Status
+The [report](report/main.pdf) gives the full account. The [video](results/video/demo.mp4)
+shows one typical episode for each condition, side by side. The numbers in its text come
+from the tests.
 
-| Stage | Content | Status |
-|---|---|---|
-| D0 | Environment setup and speed test on one laptop GPU (RTX 5060, 8 GB) | Done |
-| D1 | Baseline policy P0 (upstream task, no payload) and evaluation protocol | Done |
-| D2 | Payload in the beak and the failure curve of P0 | Done |
-| D3 | Payload randomization, privileged information, history adaptation | Done |
-| D4 | Runtime monitors with conformal thresholds, and fallbacks | Done |
+## Contents
 
-## Baseline result (P0, no payload)
+- [Baseline policy](#baseline-policy-p0-no-payload)
+- [Payload setting](#payload-setting)
+- [Part 1: the failure of the baseline](#part-1-the-failure-of-the-baseline)
+- [Part 2: three methods against the payload](#part-2-three-methods-against-the-payload)
+- [Part 2: the payload mass in the hidden layer](#part-2-the-payload-mass-in-the-hidden-layer)
+- [Part 3: runtime monitors and fallbacks](#part-3-runtime-monitors-and-fallbacks)
+- [Limits](#limits)
+- [How to run](#how-to-run)
+- [Layout](#layout)
+- [Acknowledgements](#acknowledgements)
+
+## Baseline policy (P0, no payload)
 
 P0 trains for 3000 iterations with 4096 parallel environments (2.4 h). The evaluation
 removes the curriculum and the random pushes, and gives each robot one fixed velocity
@@ -76,7 +110,7 @@ is 0.737 kg). The hypotheses and the frozen test settings are in
 The first version of that file said that the payload is at the tip of the beak. This was
 an error in the description. The file has a dated correction. The results did not change.
 
-## Result: failure curve of P0 (test seeds)
+## Part 1: the failure of the baseline
 
 P0 never saw a payload in training. Test seeds 2000 and 2001, 768 episodes per mass
 (128 per command).
@@ -89,7 +123,8 @@ P0 never saw a payload in training. Test seeds 2000 and 2001, 768 episodes per m
 | forward_fast vx (m/s), command 0.4 | 0.21 | 0.27 | 0.31 | 0.34 | 0.35 | 0.33 | 0.31 | 0.16 | 0.00 |
 | backward vx (m/s), command -0.3 | -0.19 | -0.14 | -0.09 | -0.03 | 0.00 | 0.03 | 0.04 | 0.05 | 0.04 |
 
-All four parts of hypothesis H1 hold:
+<details>
+<summary>Hypotheses H1a to H1d: all four hold</summary>
 
 | Hypothesis | Result |
 |---|---|
@@ -97,6 +132,8 @@ All four parts of hypothesis H1 hold:
 | H1b. Fall rate crosses 0.5 between 120 g and 150 g | Holds: 0.400 and 0.745 |
 | H1c. At 60 g, backward speed is less than half of its value at 0 g, with few falls | Holds: 0.03 m/s against 0.19 m/s, fall rate 0.004 |
 | H1d. At 100 g and 120 g, forward_fast falls most and backward falls least | Holds: 0.38 and 0.01 at 100 g, 0.81 and 0.05 at 120 g |
+
+</details>
 
 The failure has two stages. Up to 60 g the robot does not fall, but its velocity moves
 forward: it walks forward faster and it almost cannot walk backward. From 80 g it starts
@@ -109,7 +146,7 @@ Videos of P0 with a payload, all six commands (development seed):
 [100 g](results/video/p0_seed0_mouth_100g_dev1000.mp4).
 Their text says "in the beak". The payload is at the end of the rod, as in the section above.
 
-## Result: three methods against the payload (test seeds)
+## Part 2: three methods against the payload
 
 All methods start from the P0 checkpoint and train for 1000 more iterations
 (about 53 min each). Each method has 3 training seeds.
@@ -121,10 +158,9 @@ All methods start from the P0 checkpoint and train for 1000 more iterations
 | P2 | random, 0 to 100 g | the same, and the true payload mass |
 | P3 | random, 0 to 100 g | the last 25 observations (0.5 s). Only the critic sees the mass |
 
-![Fall rate and backward velocity against the payload mass](results/d3/methods_test.png)
-
-In the right panel, the line of P0c stops at 150 g. At 200 g all its robots fall before
-the measurement starts.
+The first figure in [Results in short](#results-in-short) shows the fall rate and the
+backward velocity of each policy. In its right panel, the line of P0c stops at 150 g:
+at 200 g all its robots fall before the measurement starts.
 
 Test seeds 2000 and 2001, 768 episodes per mass and policy. Median of 3 training seeds.
 
@@ -138,6 +174,9 @@ Test seeds 2000 and 2001, 768 episodes per mass and policy. Median of 3 training
 | Change of backward velocity, 0 to 100 g (m/s) | 0.175 | 0.127 | 0.051 | 0.067 |
 | Change of forward_fast velocity, 0 to 100 g (m/s) | 0.172 | 0.108 | 0.019 | 0.047 |
 
+<details>
+<summary>Hypotheses H2a to H4: two hold, two fail, one could not be tested</summary>
+
 | Hypothesis | Result |
 |---|---|
 | H2a. P1 has a fall rate of at most 0.05 for each mass up to 100 g | Holds: the highest value is 0 |
@@ -145,6 +184,8 @@ Test seeds 2000 and 2001, 768 episodes per mass and policy. Median of 3 training
 | H3a. From 20 to 100 g, P3 closes at least half of the gap in tracking RMSE between P1 and P2 | Not supported: P2 is not better than P1, so there is no gap |
 | H3b. At 150 g, P3 has a lower fall rate than P1 | Fails: 0.124 against 0.046 |
 | H4. A linear model reads the payload mass from the last hidden layer of the P3 actor, R^2 above 0.7 | Holds: 0.861 |
+
+</details>
 
 What we learned:
 
@@ -158,7 +199,7 @@ What we learned:
   P1. We did not preregister this measure. It is an exploratory result.
 - P3 adapts inside the training range but falls more often outside it (2 of 3 seeds).
 
-## Result: the payload mass in the hidden layer (test seeds)
+## Part 2: the payload mass in the hidden layer
 
 A linear model reads the payload mass from the 128 values of the last hidden layer of
 the actor. We fit it on development seed 1000 and score it on the test seeds.
@@ -176,7 +217,7 @@ The mass is thus in the current observation: the payload pushes the soft neck do
 The probe shows that the information is there. It does not show that the policy uses it.
 P1 has the information, but its velocity still changes with the payload.
 
-## Result: runtime monitors and fallbacks (test seeds)
+## Part 3: runtime monitors and fallbacks
 
 For P1 and P3, an episode is normal when the payload is inside the training range
 (0 to 100 g). A monitor must be silent there, and it must give an alarm for a heavier
@@ -206,7 +247,7 @@ The critic of P3 sees the true payload mass. Its alarm after 0.02 s is not a det
 Two fallbacks act at the alarm. Stand: the velocity command goes to zero. Drop: the
 robot lets go of the payload, with no delay (the best case).
 
-![Fall rate with each fallback, and the alarm rate against the payload mass](results/d4/monitors_test.png)
+The second figure in [Results in short](#results-in-short) shows these fall rates at 200 g.
 
 | Fall rate | No fallback | Residual, stand | Stand when the payload appears | Neck, drop | Residual, drop |
 |---|---|---|---|---|---|
@@ -214,6 +255,9 @@ robot lets go of the payload, with no delay (the best case).
 | P1, 200 g | 0.467 | 0.432 | 0.276 | 0.283 | 0.023 |
 | P3, 150 g | 0.133 | 0.102 | 0.053 | 0.255 | 0.060 |
 | P3, 200 g | 0.658 | 0.596 | 0.570 | 0.629 | 0.059 |
+
+<details>
+<summary>Hypotheses H5a to H6b: all eight hold</summary>
 
 | Hypothesis | Result (P1 / P3) |
 |---|---|
@@ -225,6 +269,8 @@ robot lets go of the payload, with no delay (the best case).
 | H5f. P3 at 150 g: neck with drop has a higher fall rate than no fallback | Holds: 0.255 against 0.133 |
 | H6a. P1 at 200 g: value gives the alarm earlier than residual | Holds: 0.20 s against 0.32 s |
 | H6b. P3 at 200 g: probe catches fewer falls than residual | Holds: 0.95 against 1.00 |
+
+</details>
 
 How to read these results:
 
@@ -258,6 +304,19 @@ repository. Clone upstream into `third_party/microduck_rl`, check out commit `ba
 and run `uv sync --locked` there. Then run all commands from the upstream folder.
 `$R` is the path of this repository.
 
+The tests, the hypothesis checks, and the figures need no GPU. They read the result
+files in this repository:
+
+```bash
+uv run --locked --with pytest pytest -q $R/tests
+uv run --locked python $R/scripts/judge_d3.py
+uv run --locked python $R/scripts/judge_d4.py --offline $R/results/d4/monitors_test --fallback $R/results/d4/fallback_test
+uv run --locked python $R/scripts/make_figures.py
+```
+
+<details>
+<summary>All commands, from the training to the video</summary>
+
 ```bash
 # D1, D2: baseline, evaluation, failure curve, video, tests
 bash $R/scripts/train_p0.sh 4096 3000 0
@@ -290,6 +349,8 @@ uv run --locked python $R/scripts/record_clip.py --checkpoint <run>/model_3998.p
 uv run --locked python $R/scripts/make_demo.py --clips <folder>
 ```
 
+</details>
+
 For P1 and P0c, do not give `--task` to the evaluation scripts. Their observation is
 the upstream one. On one laptop GPU (RTX 5060, 8 GB), a training run of D3 takes about
 53 min and one evaluation takes about 100 s.
@@ -302,6 +363,18 @@ the upstream one. On one laptop GPU (RTX 5060, 8 GB), a training run of D3 takes
 | `scripts/` | Training, evaluation, probe, monitors, fallback, hypothesis tests, figures, video |
 | `tests/` | Unit tests (33) for the payload, the environments, the metrics, the checkpoint expansion and the monitors |
 | `prereg/` | Hypotheses and frozen settings, committed before the test runs |
+| `report/` | The report (PDF and LaTeX source) and the scripts that make its tables |
 | `results/eval/` | Evaluation of each policy on the development seed and the test seeds |
 | `results/d2/`, `results/d3/`, `results/d4/` | Tables, figures and frozen monitor settings of each stage |
-| `results/video/` | Videos of the baseline policy |
+| `results/video/` | The video, and older videos of the baseline policy |
+
+## Acknowledgements
+
+The robot model and the walking task are from
+[microduck_rl](https://github.com/pollen-robotics/microduck_rl) by Pollen Robotics. The
+simulation uses [mjlab](https://github.com/mujocolab/mjlab) and MuJoCo Warp. The training
+uses PPO from [RSL-RL](https://github.com/leggedrobotics/rsl_rl). The report gives the
+full references.
+
+This project continues an earlier study of a robot arm with an unknown payload:
+[Learning-Assisted Control under Unknown Payloads](https://github.com/Shengwei-Li/Mphil_proj).
